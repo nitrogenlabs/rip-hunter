@@ -2,7 +2,7 @@
 
 #### JS utilities for GraphQL
 
-RipHunter is a small utility to parse objects formatted for GraphQL requests. It will also use fetch to send query and 
+RipHunter is a small utility to parse objects formatted for GraphQL requests as well as use fetch to send query and 
 mutation requests, returning a promise. Some helpers include sending an authorization token as well as custom headers.
 
 [![npm version](https://img.shields.io/npm/v/rip-hunter.svg?style=flat-square)](https://www.npmjs.com/package/rip-hunter)
