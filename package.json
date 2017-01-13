@@ -1,0 +1,52 @@
+{
+  "name": "rip-hunter",
+  "version": "1.0.0",
+  "description": "JS utilities for GraphQL",
+  "license": "MIT",
+  "main": "index.js",
+  "keywords": [
+    "rip-hunter",
+    "graphql",
+    "nitrogenlabs"
+  ],
+  "author": "Giraldo Rosales <giraldo@nitrogenlabs.com> (http://nitrogenlabs.com/)",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/nitrogenlabs/rip-hunter"
+  },
+  "homepage": "https://github.com/nitrogenlabs/rip-hunter",
+  "bugs": {
+    "url": "https://github.com/nitrogenlabs/rip-hunter/issues"
+  },
+  "engines": {
+    "node": ">6.0.0",
+    "npm": ">3.3.6"
+  },
+  "scripts": {
+    "test": "mocha --compilers js:babel-core/register -r jsdom-global/register",
+    "prepublish": "NODE_ENV=production node_modules/babel-cli/bin/babel.js src --out-dir lib"
+  },
+  "dependencies": {
+    "immutable": "^3.8.1",
+    "isomorphic-fetch": "^2.2.1",
+    "lodash": "^4.17.3",
+    "whatwg-fetch": "^2.0.1"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.18.0",
+    "babel-core": "^6.21.0",
+    "babel-eslint": "^7.1.1",
+    "babel-plugin-remove-comments": "^2.0.0",
+    "babel-preset-babili": "0.0.9",
+    "babel-preset-es2015": "^6.18.0",
+    "babel-preset-react-native": "^1.9.1",
+    "chai": "^3.5.0",
+    "eslint-plugin-babel": "^4.0.0",
+    "fetch-mock": "^5.8.1",
+    "jsdom": "^9.9.1",
+    "jsdom-global": "^2.1.1",
+    "mocha": "^3.2.0",
+    "mocha-eslint": "^3.0.1",
+    "sinon": "^1.17.7"
+  }
+}
