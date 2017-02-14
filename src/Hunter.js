@@ -24,6 +24,92 @@ class Hunter extends EventEmitter {
     this.removeListener(event, listener);
   }
 
+  // AJAX
+  get(url, params, token, headers) {
+    return this.ajax(url, 'GET', params, token, headers);
+  }
+
+  post(url, params, token, headers) {
+    return this.ajax(url, 'POST', params, token, headers);
+  }
+
+  put(url, params, token, headers) {
+    return this.ajax(url, 'PUT', params, token, headers);
+  }
+
+  del(url, params, token, headers) {
+    return this.ajax(url, 'DELETE', params, token, headers);
+  }
+
+  ajax(url, method, params, token, headers) {
+    url = (url || '').trim();
+    token = (token || '').trim();
+
+    if(!headers) {
+      headers = {
+        'Cache-Control': 'no-cache'
+      };
+    } else {
+      headers = {};
+    }
+
+    // Method
+    method = (method || 'GET').toUpperCase();
+
+    // Parameters
+    if(params && method === 'GET') {
+      url = `${url}?${this.queryString(params)}`;
+      params = null;
+    } else if(params) {
+      params = JSON.stringify(params);
+    }
+
+    // Authentication token
+    if(token !== '') {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Check if response is json
+    let isJSON = false;
+
+    return fetch(url, {
+      method,
+      headers,
+      body: params
+    })
+      .then(response => {
+        const regex = /application\/json/i;
+        isJSON = response.headers.getAll('Content-Type').some(type => regex.test(type));
+
+        if(isJSON) {
+          return response.json();
+        } else {
+          return response.text();
+        }
+      })
+      .then(results => {
+        if(isJSON) {
+          return Immutable.fromJS(results);
+        } else {
+          return results;
+        }
+      })
+      .catch(error => {
+        if((error || {}).message === 'only absolute urls are supported') {
+          error = new APIError(Immutable.fromJS([{message: 'invalid_url'}]), error);
+        }
+
+        error = new APIError(Immutable.fromJS([{message: 'network_error'}]), error);
+
+        this.emit('rip_hunter_error', error);
+        throw error;
+      });
+  }
+
+  queryString(json) {
+    return Object.keys(json).map(key => `${encodeURIComponent(key)}=${encodeURIComponent(json[key])}`).join('&');
+  }
+
   // GraphQL
   toGQL(obj) {
     if(Immutable.Iterable.isIterable(obj)) {
@@ -104,12 +190,12 @@ class Hunter extends EventEmitter {
     })
       .then(response => {
         const regex = /application\/json/i;
-        const isJSON = response.headers.getAll('Content-Type').some(type => regex.test(type));
+        const isJSON = regex.test(response.headers['Content-Type']);
 
         if(isJSON) {
           return response.json();
         } else {
-          return {data:{}};
+          return {data: {}};
         }
       })
       .catch(error => {

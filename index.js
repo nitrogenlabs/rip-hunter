@@ -10,3 +10,4 @@ exports.__esModule = true;
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
 exports.Hunter = _interopRequireDefault(require('./lib/Hunter'))['default'];
+exports.APIError = _interopRequireDefault(require('./lib/errors/APIError'))['default'];
