@@ -79,7 +79,7 @@ class Hunter extends EventEmitter {
     })
       .then(response => {
         const regex = /application\/json/i;
-        isJSON = response.headers.getAll('Content-Type').some(type => regex.test(type));
+        const isJSON = regex.test(response.headers.get('Content-Type') || '');
 
         if(isJSON) {
           return response.json();
@@ -190,7 +190,7 @@ class Hunter extends EventEmitter {
     })
       .then(response => {
         const regex = /application\/json/i;
-        const isJSON = regex.test(response.headers['Content-Type']);
+        const isJSON = regex.test(response.headers.get('Content-Type') || '');
 
         if(isJSON) {
           return response.json();
