@@ -45,14 +45,6 @@ class Hunter extends EventEmitter {
     url = (url || '').trim();
     token = (token || '').trim();
 
-    if(!headers) {
-      headers = {
-        'Cache-Control': 'no-cache'
-      };
-    } else {
-      headers = {};
-    }
-
     // Method
     method = (method || 'GET').toUpperCase();
 
@@ -66,6 +58,7 @@ class Hunter extends EventEmitter {
 
     // Authentication token
     if(token !== '') {
+      headers = headers || {};
       headers.Authorization = `Bearer ${token}`;
     }
 
