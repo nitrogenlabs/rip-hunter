@@ -48,7 +48,7 @@ describe('Hunter', () => {
 
       Hunter.query(url, gql)
         .then(data => {
-          expect(data.get('hello')).to.eq('world');
+          expect(data.hello).to.eq('world');
           done();
         })
         .catch(done);
@@ -63,7 +63,7 @@ describe('Hunter', () => {
         sendAsJson: true
       });
 
-      Hunter.query(url, gql, token)
+      Hunter.query(url, gql, {token})
         .then(() => {
           const opts = fetchMock.lastOptions();
           expect(opts.headers.Authorization).to.eq(`Bearer ${token}`);
@@ -86,7 +86,7 @@ describe('Hunter', () => {
           done();
         })
         .catch(error => {
-          expect(error.errors.get(0)).to.eq('test_error');
+          expect(error.errors[0]).to.eq('test_error');
           done();
         });
     });
@@ -129,7 +129,7 @@ describe('Hunter', () => {
 
       Hunter.mutation(url, gql)
         .then(data => {
-          expect(data.get('hello')).to.eq('world');
+          expect(data.hello).to.eq('world');
           done();
         })
         .catch(done);
@@ -144,7 +144,7 @@ describe('Hunter', () => {
         sendAsJson: true
       });
 
-      Hunter.mutation(url, gql, token)
+      Hunter.mutation(url, gql, {token})
         .then(() => {
           const opts = fetchMock.lastOptions();
           expect(opts.headers.Authorization).to.eq(`Bearer ${token}`);
@@ -167,7 +167,7 @@ describe('Hunter', () => {
           done();
         })
         .catch(error => {
-          expect(error.errors.get(0)).to.eq('test_error');
+          expect(error.errors[0]).to.eq('test_error');
           done();
         });
     });

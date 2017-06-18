@@ -2,8 +2,8 @@
   "presets": ["react-native"],
   "env": {
     "production": {
-      "presets": ["babili"],
-      "plugins": ["remove-comments"]
+      "presets": []
     }
-  }
+  },
+  "retainLines": true
 }

@@ -1,14 +1,15 @@
 {
   "name": "rip-hunter",
-  "version": "1.1.3",
-  "description": "JS utilities for GraphQL",
+  "version": "1.2.0",
+  "description": "JS utilities for AJAX and GraphQL",
   "license": "MIT",
   "main": "index.js",
   "keywords": [
-    "rip-hunter",
+    "ajax",
     "fetch",
     "graphql",
-    "nitrogenlabs"
+    "nitrogenlabs",
+    "rip-hunter"
   ],
   "author": "Giraldo Rosales <giraldo@nitrogenlabs.com> (http://nitrogenlabs.com/)",
   "repository": {
@@ -25,29 +26,29 @@
   },
   "scripts": {
     "test": "mocha --compilers js:babel-core/register -r jsdom-global/register",
-    "prepublish": "NODE_ENV=production node_modules/babel-cli/bin/babel.js src --out-dir lib"
+    "prepublishOnly": "NODE_ENV=production node_modules/babel-cli/bin/babel.js src --out-dir lib"
   },
   "dependencies": {
     "immutable": "^3.8.1",
     "isomorphic-fetch": "^2.2.1",
-    "lodash": "^4.17.3",
-    "whatwg-fetch": "^2.0.1"
+    "lodash": "^4.17.4",
+    "whatwg-fetch": "^2.0.3"
   },
   "devDependencies": {
-    "babel-cli": "^6.18.0",
-    "babel-core": "^6.21.0",
-    "babel-eslint": "^7.1.1",
+    "babel-cli": "^6.24.1",
+    "babel-core": "^6.25.0",
+    "babel-eslint": "^7.2.3",
     "babel-plugin-remove-comments": "^2.0.0",
-    "babel-preset-babili": "0.0.9",
-    "babel-preset-es2015": "^6.18.0",
-    "babel-preset-react-native": "^1.9.1",
-    "chai": "^3.5.0",
-    "eslint-plugin-babel": "^4.0.0",
-    "fetch-mock": "^5.8.1",
-    "jsdom": "^9.9.1",
-    "jsdom-global": "^2.1.1",
-    "mocha": "^3.2.0",
+    "babel-preset-babili": "0.1.3",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-react-native": "^2.0.0",
+    "chai": "^4.0.2",
+    "eslint-plugin-babel": "^4.1.1",
+    "fetch-mock": "^5.11.0",
+    "jsdom": "^11.0.0",
+    "jsdom-global": "^3.0.2",
+    "mocha": "^3.4.2",
     "mocha-eslint": "^3.0.1",
-    "sinon": "^1.17.7"
+    "sinon": "^2.3.4"
   }
 }

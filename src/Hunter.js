@@ -25,23 +25,29 @@ class Hunter extends EventEmitter {
   }
 
   // AJAX
-  get(url, params, token, headers) {
-    return this.ajax(url, 'GET', params, token, headers);
+  get(url, params, options) {
+    return this.ajax(url, 'GET', params, options);
   }
 
-  post(url, params, token, headers) {
-    return this.ajax(url, 'POST', params, token, headers);
+  post(url, params, options) {
+    return this.ajax(url, 'POST', params, options);
   }
 
-  put(url, params, token, headers) {
-    return this.ajax(url, 'PUT', params, token, headers);
+  put(url, params, options) {
+    return this.ajax(url, 'PUT', params, options);
   }
 
-  del(url, params, token, headers) {
-    return this.ajax(url, 'DELETE', params, token, headers);
+  del(url, params, options) {
+    return this.ajax(url, 'DELETE', params, options);
   }
 
-  ajax(url, method, params, token, headers) {
+  ajax(url, method, params, options = {}) {
+    let {
+      headers,
+      immutable,
+      token
+    } = options;
+
     url = (url || '').trim();
     token = (token || '').trim();
 
@@ -82,17 +88,17 @@ class Hunter extends EventEmitter {
       })
       .then(results => {
         if(isJSON) {
-          return Immutable.fromJS(results);
+          return immutable ? Immutable.fromJS(results) : results;
         } else {
           return results;
         }
       })
       .catch(error => {
         if((error || {}).message === 'only absolute urls are supported') {
-          error = new APIError(Immutable.fromJS([{message: 'invalid_url'}]), error);
+          error = new APIError([{message: 'invalid_url'}], error);
         }
 
-        error = new APIError(Immutable.fromJS([{message: 'network_error'}]), error);
+        error = new APIError([{message: 'network_error'}], error);
 
         this.emit('rip_hunter_error', error);
         throw error;
@@ -149,19 +155,20 @@ class Hunter extends EventEmitter {
     }
   }
 
-  query(url, body, token = '', headers) {
+  query(url, body, options) {
     body = `query ${body}`;
-    return this._getGraph(url, body, token, headers);
+    return this._getGraph(url, body, options);
   }
 
-  mutation(url, body, token = '', headers) {
+  mutation(url, body, options) {
     body = `mutation ${body}`;
-    return this._getGraph(url, body, token, headers);
+    return this._getGraph(url, body, options);
   }
 
-  _getGraph(url, body, token = '', headers) {
+  _getGraph(url, body, options = {}) {
+    let {headers, immutable, token} = options;
     url = url ? url.trim() : '';
-    token = token || '';
+    token = (token || '').trim();
 
     if(!headers) {
       headers = {
@@ -193,10 +200,10 @@ class Hunter extends EventEmitter {
       })
       .catch(error => {
         if((error || {}).message === 'only absolute urls are supported') {
-          throw new APIError(Immutable.fromJS([{message: 'invalid_url'}]), error);
+          throw new APIError([{message: 'invalid_url'}], error);
         }
 
-        throw new APIError(Immutable.fromJS([{message: 'network_error'}]), error);
+        throw new APIError([{message: 'network_error'}], error);
       })
       .then(json => {
         if(!json || json.errors) {
@@ -204,17 +211,18 @@ class Hunter extends EventEmitter {
             json = {errors: [{message: 'api_error'}]};
           }
           else if((json.errors || []).some(o => o.message === 'Must provide query string.')) {
-            throw new APIError(Immutable.fromJS([{message: 'required_query'}]), new Error());
+            throw new APIError([{message: 'required_query'}], new Error());
           }
 
-          throw new APIError(Immutable.fromJS(json.errors), new Error());
+          throw new APIError(json.errors, new Error());
         } else {
-          return Immutable.fromJS(json.data || {});
+          const results = json.data || {};
+          return immutable ? Immutable.fromJS(results) : results;
         }
       })
       .catch(error => {
         if(!error.source) {
-          error = new APIError(Immutable.fromJS([{message: 'network_error'}]), error);
+          error = new APIError([{message: 'network_error'}], error);
         }
 
         this.emit('rip_hunter_error', error);

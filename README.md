@@ -21,11 +21,7 @@ Using [npm](https://www.npmjs.com/):
 Then with a module bundler like [webpack](https://webpack.github.io/) that supports either CommonJS or ES2015 modules, use as you would anything else:
 
 ```js
-// Using an ES6 transpiler for web apps
 import {Hunter} from 'rip-hunter';
-
-// not using an ES6 transpiler
-var Hunter = require('rip-hunter').Hunter;
 ```
 
 ### How to use
@@ -43,7 +39,7 @@ const AppActions = {
     // Query data
     return Hunter.query(url, gql)
       .then(results => {
-        console.log(results.toJS());
+        console.log(results);
         // Assuming the results will return the JSON object, {status: 'ok'}
         // Output: {status: 'ok'}
       })
@@ -61,7 +57,7 @@ const AppActions = {
     // Mutate data
     return Hunter.mutation(url, gql)
       .then(results => {
-        console.log(results.toJS());
+        console.log(results);
         // Assuming the results will return the JSON object, {id: 'test', hello: 'world'}
         // Output: {id: 'test', hello: 'world'}
       })
@@ -98,24 +94,91 @@ Removes an event listener.
 * [`listener`] \(*Function*): The callback associated with the subscribed event.
 
 
-### Requests
+### AJAX
 
-#### `query(url, body, token, headers)`
+#### `ajax(url, method, params, options)`
+AJAX request.
+* [`url`] \(*String*): URL to send the request. Must be an absolute url.
+* [`method`] \(*String*): The HTTP method for the request.
+* [`params`] \(*Object*): Data to be sent with the request. Params will be converted to a query string for GET methods. 
+* [`options`] \(*Object*): Rip Hunter options.
+  * [`headers`] \(*Object*): Overwrite the default headers.
+  * [`immutable`] \(*Boolean*): Converts result to an Immutable object if set to true. Default: false.
+  * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
+    
+##### Returns
+A promise with either the response data or APIError.
+
+#### `get(url, params, options)`
+Server request using HTTP GET.
+* [`url`] \(*String*): URL to send the request. Must be an absolute url.
+* [`params`] \(*Object*): Data to be sent with the request.
+* [`options`] \(*Object*): Rip Hunter options.
+  * [`headers`] \(*Object*): Overwrite the default headers.
+  * [`immutable`] \(*Boolean*): Converts result to an Immutable object if set to true. Default: false.
+  * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
+    
+##### Returns
+A promise with either the response data or APIError.
+
+#### `post(url, params, options)`
+Server request using HTTP POST.
+* [`url`] \(*String*): URL to send the request. Must be an absolute url.
+* [`params`] \(*Object*): Data to be sent with the request.
+* [`options`] \(*Object*): Rip Hunter options.
+  * [`headers`] \(*Object*): Overwrite the default headers.
+  * [`immutable`] \(*Boolean*): Converts result to an Immutable object if set to true. Default: false.
+  * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
+    
+##### Returns
+A promise with either the response data or APIError.
+
+#### `put(url, params, options)`
+Server request using HTTP PUT.
+* [`url`] \(*String*): URL to send the request. Must be an absolute url.
+* [`params`] \(*Object*): Data to be sent with the request.
+* [`options`] \(*Object*): Rip Hunter options.
+  * [`headers`] \(*Object*): Overwrite the default headers.
+  * [`immutable`] \(*Boolean*): Converts result to an Immutable object if set to true. Default: false.
+  * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
+    
+##### Returns
+A promise with either the response data or APIError.
+
+#### `del(url, params, options)`
+Server request using HTTP DEL.
+* [`url`] \(*String*): GraphQL server endpoint. Must be an absolute url.
+* [`params`] \(*Object*): Data to be sent with the request.
+* [`options`] \(*Object*): Rip Hunter options.
+  * [`headers`] \(*Object*): Overwrite the default headers.
+  * [`immutable`] \(*Boolean*): Converts result to an Immutable object if set to true. Default: false.
+  * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
+    
+##### Returns
+A promise with either the response data or APIError.
+
+### GraphQL
+
+#### `query(url, body, options)`
 Queries a GraphQL server.
 * [`url`] \(*String*): GraphQL server endpoint. Must be an absolute url.
 * [`body`] \(*String*): GraphQL query.
-* [`token`] \(*String*): (optional) Will add an _Authorization_ header with the value _Bearer [token]_.
-* [`headers`] \(*Object*): (optional) Will overwrite the default headers.
-
+* [`options`] \(*Object*): Rip Hunter options.
+  * [`headers`] \(*Object*): Overwrite the default headers.
+  * [`immutable`] \(*Boolean*): Converts result to an Immutable object if set to true. Default: false.
+  * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
+    
 ##### Returns
-A promise with either the response data or error. Data will be returned as an immutable object.
+A promise with either the response data or APIError.
 
 #### `mutation(url, body, token, headers)`
 Modifies data on a GraphQL server.
 * [`url`] \(*String*): GraphQL server endpoint. Must be an absolute url.
 * [`body`] \(*String*): GraphQL query.
-* [`token`] \(*String*): (optional) Will add an _Authorization_ header with the value _Bearer [token]_.
-* [`headers`] \(*Object*): (optional) Will overwrite the default headers.
+* [`options`] \(*Object*): Rip Hunter options.
+  * [`headers`] \(*Object*): Overwrite the default headers.
+  * [`immutable`] \(*Boolean*): Converts result to an Immutable object if set to true. Default: false.
+  * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
 
 ##### Returns
-A promise with either the response data or error. Data will be returned as an immutable object.
+A promise with either the response data or APIError.
