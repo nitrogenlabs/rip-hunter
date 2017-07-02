@@ -1,6 +1,6 @@
 {
   "name": "rip-hunter",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "JS utilities for AJAX and GraphQL",
   "license": "MIT",
   "main": "index.js",
@@ -44,11 +44,11 @@
     "babel-preset-react-native": "^2.0.0",
     "chai": "^4.0.2",
     "eslint-plugin-babel": "^4.1.1",
-    "fetch-mock": "^5.11.0",
+    "fetch-mock": "^5.12.0",
     "jsdom": "^11.0.0",
     "jsdom-global": "^3.0.2",
     "mocha": "^3.4.2",
     "mocha-eslint": "^3.0.1",
-    "sinon": "^2.3.4"
+    "sinon": "^2.3.6"
   }
 }

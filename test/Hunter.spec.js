@@ -194,4 +194,11 @@ describe('Hunter', () => {
         });
     });
   });
+
+  describe('#removeSpaces', () => {
+    it('should remove extra spacing except within quotes', () => {
+      const str = 'test{ method: {id: "hello world"}';
+      expect(Hunter.removeSpaces(str)).to.be.eq('test{method:{id:"hello world"}');
+    });
+  });
 });

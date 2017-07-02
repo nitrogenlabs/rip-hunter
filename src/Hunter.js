@@ -229,6 +229,10 @@ class Hunter extends EventEmitter {
         throw error;
       });
   }
+
+  removeSpaces(str) {
+    return str.replace(/\s+(?=(?:[^'"]*['"][^'"]*['"])*[^'"]*$)/gm,'');
+  }
 }
 
 const hunter = new Hunter();
