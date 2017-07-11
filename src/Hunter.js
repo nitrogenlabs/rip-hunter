@@ -172,8 +172,7 @@ class Hunter extends EventEmitter {
 
     if(!headers) {
       headers = {
-        'Content-Type': 'application/graphql',
-        'Cache-Control': 'no-cache'
+        'Content-Type': 'application/graphql'
       };
     } else {
       headers = {};
