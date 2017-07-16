@@ -1,6 +1,6 @@
 {
   "name": "rip-hunter",
-  "version": "1.2.3",
+  "version": "1.2.5",
   "description": "JS utilities for AJAX and GraphQL",
   "license": "MIT",
   "main": "index.js",

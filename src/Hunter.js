@@ -200,10 +200,10 @@ class Hunter extends EventEmitter {
       })
       .catch(error => {
         if((error || {}).message === 'only absolute urls are supported') {
-          throw new APIError([{message: 'invalid_url'}], error);
+          return Promise.reject(new APIError([{message: 'invalid_url'}], error));
         }
 
-        throw new APIError([{message: 'network_error'}], error);
+        return Promise.reject(new APIError([{message: 'network_error'}], error));
       })
       .then(json => {
         if(!json || json.errors) {
@@ -211,10 +211,10 @@ class Hunter extends EventEmitter {
             json = {errors: [{message: 'api_error'}]};
           }
           else if((json.errors || []).some(o => o.message === 'Must provide query string.')) {
-            throw new APIError([{message: 'required_query'}], new Error());
+            return Promise.reject(new APIError([{message: 'required_query'}], new Error()));
           }
 
-          throw new APIError(json.errors, new Error());
+          return Promise.reject(new APIError(json.errors, new Error()));
         } else {
           const results = json.data || {};
           return immutable ? Immutable.fromJS(results) : results;
@@ -231,7 +231,7 @@ class Hunter extends EventEmitter {
   }
 
   removeSpaces(str) {
-    return str.replace(/\s+(?=(?:[^'"]*['"][^'"]*['"])*[^'"]*$)/gm,'');
+    return str.replace(/\s+(?=(?:[^'"]*['"][^'"]*['"])*[^'"]*$)/gm, '');
   }
 }
 
