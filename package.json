@@ -1,6 +1,6 @@
 {
   "name": "rip-hunter",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "JS utilities for AJAX and GraphQL",
   "license": "MIT",
   "main": "index.js",
@@ -29,6 +29,7 @@
     "prepublishOnly": "NODE_ENV=production node_modules/babel-cli/bin/babel.js src --out-dir lib"
   },
   "dependencies": {
+    "bluebird": "^3.5.0",
     "immutable": "^3.8.1",
     "isomorphic-fetch": "^2.2.1",
     "lodash": "^4.17.4",
@@ -42,13 +43,13 @@
     "babel-preset-babili": "0.1.4",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-react-native": "^2.1.0",
-    "chai": "^4.0.2",
+    "chai": "^4.1.0",
     "eslint-plugin-babel": "^4.1.1",
     "fetch-mock": "^5.12.1",
     "jsdom": "^11.1.0",
     "jsdom-global": "^3.0.2",
     "mocha": "^3.4.2",
-    "mocha-eslint": "^3.0.1",
-    "sinon": "^2.3.7"
+    "mocha-eslint": "^4.0.0",
+    "sinon": "^2.3.8"
   }
 }

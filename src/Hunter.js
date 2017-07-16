@@ -1,6 +1,7 @@
 import EventEmitter from 'events';
 import Immutable from 'immutable';
 import _ from 'lodash';
+import Promise from 'bluebird';
 import APIError from './errors/APIError';
 import 'whatwg-fetch';
 
@@ -225,7 +226,7 @@ class Hunter extends EventEmitter {
         }
 
         this.emit('rip_hunter_error', error);
-        throw error;
+        return Promise.reject(error);
       });
   }
 
