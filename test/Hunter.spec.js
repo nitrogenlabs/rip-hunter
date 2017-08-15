@@ -26,6 +26,12 @@ describe('Hunter', () => {
       return expect('{prop: "test"}').to.eq(gql);
     });
 
+    it('should convert an array to GQL', () => {
+      const array = [{prop: 'test'}];
+      const gql = Hunter.toGQL(array);
+      return expect('[{prop: "test"}]').to.eq(gql);
+    });
+
     it('should convert an immutable object to GQL', () => {
       const obj = Immutable.fromJS({prop: 'test'});
       const gql = Hunter.toGQL(obj);

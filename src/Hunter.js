@@ -114,29 +114,22 @@ class Hunter extends EventEmitter {
   toGQL(obj) {
     if(Immutable.Iterable.isIterable(obj)) {
       return this.toGQL(obj.toJS());
-    }
-    else if(_.isString(obj) || Array.isArray(obj)) {
+    } else if(_.isString(obj)) {
       return JSON.stringify(obj);
-    }
-    else if(_.isObject(obj)) {
+    } else if(_.isPlainObject(obj)) {
       obj = _(obj).omit(_.isUndefined).omit(_.isNull).value();
-      let keys = Object.keys(obj);
       let props = [];
 
-      keys.map(k => {
+      Object.keys(obj).map(k => {
         const item = obj[k];
 
         if(_.isPlainObject(item)) {
           props.push(this.toGQL(item));
-        }
-        else if(_.isArray(item)) {
-          const list = item.map(o => {
-            return this.toGQL(o);
-          });
-
+        } else if(_.isArray(item)) {
+          const list = item.map(o => this.toGQL(o));
           props.push(`${k}: [${list.join(', ')}]`);
         } else {
-          let val = JSON.stringify(item);
+          const val = JSON.stringify(item);
 
           if(val) {
             props.push(`${k}: ${val}`);
@@ -151,6 +144,8 @@ class Hunter extends EventEmitter {
       } else {
         return `{${props.join(', ')}}`;
       }
+    } else if(_.isArray(obj)) {
+      return `[${obj.map(o => this.toGQL(o)).toString()}]`;
     } else {
       return obj;
     }
