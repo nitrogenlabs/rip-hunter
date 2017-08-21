@@ -50,8 +50,6 @@
     <inspection_tool class="IncrementDecrementResultUsedJS" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="InnerHTMLJS" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="JSClassNamingConvention" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="JSHint" enabled="true" level="ERROR" enabled_by_default="true" />
-    <inspection_tool class="JSLint" enabled="true" level="ERROR" enabled_by_default="true" />
     <inspection_tool class="LabeledStatementJS" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="MagicNumberJS" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="NegatedConditionalExpressionJS" enabled="true" level="WARNING" enabled_by_default="true" />

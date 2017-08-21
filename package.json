@@ -1,6 +1,6 @@
 {
   "name": "rip-hunter",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "JS utilities for AJAX and GraphQL",
   "license": "MIT",
   "main": "index.js",
@@ -9,7 +9,8 @@
     "fetch",
     "graphql",
     "nitrogenlabs",
-    "rip-hunter"
+    "rip-hunter",
+    "typescript"
   ],
   "author": "Giraldo Rosales <giraldo@nitrogenlabs.com> (http://nitrogenlabs.com/)",
   "repository": {
@@ -25,31 +26,48 @@
     "npm": ">3.3.6"
   },
   "scripts": {
-    "test": "mocha --compilers js:babel-core/register -r jsdom-global/register",
-    "prepublishOnly": "NODE_ENV=production node_modules/babel-cli/bin/babel.js src --out-dir lib"
+    "compile": "tsc",
+    "docs": "typedoc --target ES5 --module commonjs --out docs/ src/ --exclude src/index.ts --excludeExternals --hideGenerator",
+    "lint": "tslint -c tslint.json 'src/**/*.{ts,tsx}'",
+    "pretest": "npm run lint",
+    "test": "jest",
+    "prepublishOnly": "NODE_ENV=production npm test && npm run compile"
   },
   "dependencies": {
-    "bluebird": "^3.5.0",
     "immutable": "^3.8.1",
     "isomorphic-fetch": "^2.2.1",
-    "lodash": "^4.17.4",
-    "whatwg-fetch": "^2.0.3"
+    "lodash": "^4.17.4"
   },
   "devDependencies": {
-    "babel-cli": "^6.24.1",
-    "babel-core": "^6.25.0",
-    "babel-eslint": "^7.2.3",
-    "babel-plugin-remove-comments": "^2.0.0",
-    "babel-preset-babili": "0.1.4",
-    "babel-preset-es2015": "^6.24.1",
-    "babel-preset-react-native": "^2.1.0",
-    "chai": "^4.1.1",
-    "eslint-plugin-babel": "^4.1.2",
+    "@types/fetch-mock": "^5.12.0",
+    "@types/isomorphic-fetch": "0.0.34",
+    "@types/jest": "^20.0.7",
+    "@types/node": "^8.0.24",
     "fetch-mock": "^5.12.2",
-    "jsdom": "^11.1.0",
-    "jsdom-global": "^3.0.2",
-    "mocha": "^3.5.0",
-    "mocha-eslint": "^4.1.0",
-    "sinon": "^3.2.0"
+    "jest": "^20.0.4",
+    "ts-jest": "^20.0.10",
+    "tslint": "^5.6.0",
+    "tslint-eslint-rules": "^4.1.1",
+    "typedoc": "^0.8.0",
+    "typescript": "^2.4.2"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js"
+    ],
+    "testURL": "http://localhost",
+    "transform": {
+      "^.+\\.(ts|tsx)$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+    },
+    "testPathIgnorePatterns": [
+      "<rootDir>/node_modules/",
+      "<rootDir>/dist/"
+    ],
+    "testMatch": [
+      "<rootDir>/src/**/*test.ts?(x)"
+    ],
+    "verbose": false
   }
 }
