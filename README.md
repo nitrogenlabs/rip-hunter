@@ -44,7 +44,7 @@ const AppActions = {
         // Output: {status: 'ok'}
       })
       .catch(error => {
-        // APIError will be returned if any problems occur.
+        // ApiError will be returned if any problems occur.
       });
   },
 
@@ -62,7 +62,7 @@ const AppActions = {
         // Output: {id: 'test', hello: 'world'}
       })
       .catch(error => {
-        // APIError will be returned if any problems occur.
+        // ApiError will be returned if any problems occur.
       });
   }
 }
@@ -107,7 +107,7 @@ AJAX request.
   * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
     
 ##### Returns
-A promise with either the response data or APIError.
+A promise with either the response data or ApiError.
 
 #### `get(url, params, options)`
 Server request using HTTP GET.
@@ -119,7 +119,7 @@ Server request using HTTP GET.
   * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
     
 ##### Returns
-A promise with either the response data or APIError.
+A promise with either the response data or ApiError.
 
 #### `post(url, params, options)`
 Server request using HTTP POST.
@@ -131,7 +131,7 @@ Server request using HTTP POST.
   * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
     
 ##### Returns
-A promise with either the response data or APIError.
+A promise with either the response data or ApiError.
 
 #### `put(url, params, options)`
 Server request using HTTP PUT.
@@ -143,7 +143,7 @@ Server request using HTTP PUT.
   * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
     
 ##### Returns
-A promise with either the response data or APIError.
+A promise with either the response data or ApiError.
 
 #### `del(url, params, options)`
 Server request using HTTP DEL.
@@ -155,7 +155,7 @@ Server request using HTTP DEL.
   * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
     
 ##### Returns
-A promise with either the response data or APIError.
+A promise with either the response data or ApiError.
 
 ### GraphQL
 
@@ -169,7 +169,7 @@ Queries a GraphQL server.
   * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
     
 ##### Returns
-A promise with either the response data or APIError.
+A promise with either the response data or ApiError.
 
 #### `mutation(url, body, token, headers)`
 Modifies data on a GraphQL server.
@@ -181,4 +181,4 @@ Modifies data on a GraphQL server.
   * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
 
 ##### Returns
-A promise with either the response data or APIError.
+A promise with either the response data or ApiError.
