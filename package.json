@@ -1,6 +1,6 @@
 {
   "name": "rip-hunter",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "description": "JS utilities for AJAX and GraphQL",
   "license": "MIT",
   "main": "index.js",
@@ -35,8 +35,8 @@
   },
   "dependencies": {
     "immutable": "^3.8.1",
-    "isomorphic-fetch": "^2.2.1",
-    "lodash": "^4.17.4"
+    "lodash": "^4.17.4",
+    "whatwg-fetch": "^2.0.3"
   },
   "devDependencies": {
     "@types/fetch-mock": "^5.12.0",

@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import { EventEmitter } from 'events';
-import 'isomorphic-fetch';
+import 'whatwg-fetch';
 export interface RequestHeadersType {
     readonly [key: string]: any;
 }

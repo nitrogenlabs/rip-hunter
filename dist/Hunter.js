@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import * as Immutable from 'immutable';
-import 'isomorphic-fetch';
 import { chain, isArray, isNull, isPlainObject, isString, isUndefined } from 'lodash';
+import 'whatwg-fetch';
 import { ApiError } from './errors/ApiError';
 export class HunterUtil extends EventEmitter {
     off(event, listener) {

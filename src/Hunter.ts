@@ -1,6 +1,5 @@
 import {EventEmitter} from 'events';
 import * as Immutable from 'immutable';
-import 'isomorphic-fetch';
 import {
   chain,
   isArray,
@@ -9,6 +8,7 @@ import {
   isString,
   isUndefined
 } from 'lodash';
+import 'whatwg-fetch';
 import {ApiError} from './errors/ApiError';
 
 /**
