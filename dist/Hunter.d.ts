@@ -1,6 +1,5 @@
 /// <reference types="node" />
 import { EventEmitter } from 'events';
-import 'whatwg-fetch';
 export interface RequestHeadersType {
     readonly [key: string]: any;
 }

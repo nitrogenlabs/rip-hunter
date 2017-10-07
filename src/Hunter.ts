@@ -8,7 +8,6 @@ import {
   isString,
   isUndefined
 } from 'lodash';
-import 'whatwg-fetch';
 import {ApiError} from './errors/ApiError';
 
 /**
@@ -79,7 +78,7 @@ export class HunterUtil extends EventEmitter {
     }
     
     let isJSON: boolean;
-    
+
     return fetch(url, {body: params, headers, method})
       .then((response: Response) => {
         const regex = /application\/json/i;
@@ -186,7 +185,7 @@ export class HunterUtil extends EventEmitter {
     if(token !== '') {
       headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return fetch(url, {body, headers, method: 'post'})
       .then((response: Response) => {
         const regex = /application\/json/i;
