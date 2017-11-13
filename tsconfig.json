@@ -10,7 +10,7 @@
       "es5",
       "es6"
     ],
-    "module": "es2015",
+    "module": "commonjs",
     "moduleResolution": "node",
     "noImplicitAny": false,
     "noImplicitReturns": true,
@@ -29,21 +29,15 @@
   "compileOnSave": false,
   "exclude": [
     "**/*.test.*",
-    "android",
-    "build",
-    "dist",
-    "docs",
-    "ios",
-    "node_modules",
-    "test"
+    "./dist",
+    "./docs",
+    "./node_modules"
   ],
   "include": [
     "./src/**/*"
   ],
   "types": [
     "./src/lib/types",
-    "react",
-    "react-native",
     "jest"
   ]
 }

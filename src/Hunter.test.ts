@@ -46,7 +46,7 @@ describe('Hunter', () => {
     it('should get a successful response from a query', (done) => {
       fetchMock.postOnce(url, {
         body: {data},
-        headers: {'Content-Type': 'application/json'},
+        headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
       });
@@ -63,7 +63,7 @@ describe('Hunter', () => {
       const token: string = 'test_token';
       fetchMock.postOnce(url, {
         body: {data},
-        headers: {'Content-Type': 'application/json'},
+        headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
       });
@@ -71,7 +71,7 @@ describe('Hunter', () => {
       Hunter.query(url, gql, {token})
         .then(() => {
           const opts = fetchMock.lastOptions();
-          expect(opts.headers.Authorization).toBe(`Bearer ${token}`);
+          expect(opts.headers.get('Authorization')).toBe(`Bearer ${token}`);
           done();
         })
         .catch(done);
@@ -80,7 +80,7 @@ describe('Hunter', () => {
     it('should get an error from a query', (done) => {
       fetchMock.postOnce(url, {
         body: {errors},
-        headers: {'Content-Type': 'application/json'},
+        headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
       });
@@ -99,7 +99,7 @@ describe('Hunter', () => {
     it('should emit an error event', (done) => {
       fetchMock.postOnce(url, {
         body: {errors},
-        headers: {'Content-Type': 'application/json'},
+        headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
       });
@@ -127,7 +127,7 @@ describe('Hunter', () => {
     it('should get a successful response from a query', (done) => {
       fetchMock.postOnce(url, {
         body: {data},
-        headers: {'Content-Type': 'application/json'},
+        headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
       });
@@ -144,7 +144,7 @@ describe('Hunter', () => {
       const token: string = 'test_token';
       fetchMock.postOnce(url, {
         body: {data},
-        headers: {'Content-Type': 'application/json'},
+        headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
       });
@@ -152,7 +152,7 @@ describe('Hunter', () => {
       Hunter.mutation(url, gql, {token})
         .then(() => {
           const opts = fetchMock.lastOptions();
-          expect(opts.headers.Authorization).toBe(`Bearer ${token}`);
+          expect(opts.headers.get('Authorization')).toBe(`Bearer ${token}`);
           done();
         })
         .catch(done);
@@ -161,7 +161,7 @@ describe('Hunter', () => {
     it('should get an error from a query', (done) => {
       fetchMock.postOnce(url, {
         body: {errors},
-        headers: {'Content-Type': 'application/json'},
+        headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
       });
@@ -180,7 +180,7 @@ describe('Hunter', () => {
     it('should emit an error event', (done) => {
       fetchMock.postOnce(url, {
         body: {errors},
-        headers: {'Content-Type': 'application/json'},
+        headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
       });

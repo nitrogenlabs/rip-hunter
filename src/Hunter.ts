@@ -15,12 +15,8 @@ import {ApiError} from './errors/ApiError';
  * Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms.
  */
 
-export interface RequestHeadersType {
-  readonly [key: string]: any;
-}
-
 export interface HunterOptionsType {
-  readonly headers?: RequestHeadersType;
+  readonly headers?: Headers;
   readonly isImmutable?: boolean;
   readonly token?: string;
 }
@@ -51,15 +47,13 @@ export class HunterUtil extends EventEmitter {
   }
   
   ajax(url: string, method: string, params?, options: HunterOptionsType = {}): Promise<any> {
-    let {
-      headers,
-      token
-    } = options;
+    const {headers, token} = options;
     const {isImmutable} = options;
     
     url = (url || '').trim();
-    token = (token || '').trim();
-    
+    const formatToken: string = (token || '').trim();
+    const formatHeaders: Headers = headers || new Headers();
+
     // Method
     method = (method || 'GET').toUpperCase();
     
@@ -72,14 +66,13 @@ export class HunterUtil extends EventEmitter {
     }
     
     // Authentication token
-    if(token !== '') {
-      headers = headers || {};
-      headers.Authorization = `Bearer ${token}`;
+    if(formatToken !== '') {
+      formatHeaders.set('Authorization', `Bearer ${formatToken}`);
     }
     
     let isJSON: boolean;
 
-    return fetch(url, {body: params, headers, method})
+    return fetch(url, {body: params, headers: formatHeaders, method})
       .then((response: Response) => {
         const regex = /application\/json/i;
         
@@ -170,26 +163,19 @@ export class HunterUtil extends EventEmitter {
   
   _getGraph(url: string, body?, options: HunterOptionsType = {}): Promise<any> {
     const {isImmutable} = options;
-    let {headers, token} = options;
+    const {headers, token} = options;
     url = url ? url.trim() : '';
-    token = (token || '').trim();
+    const formatToken: string = (token || '').trim();
+    const formatHeaders: Headers = headers || new Headers({'Content-Type': 'application/graphql'});
     
-    if(!headers) {
-      headers = {
-        'Content-Type': 'application/graphql'
-      };
-    } else {
-      headers = {};
-    }
-    
-    if(token !== '') {
-      headers.Authorization = `Bearer ${token}`;
+    if(formatToken !== '') {
+      formatHeaders.set('Authorization', `Bearer ${formatToken}`);
     }
 
-    return fetch(url, {body, headers, method: 'post'})
+    return fetch(url, {body, headers: formatHeaders, method: 'post'})
       .then((response: Response) => {
-        const regex = /application\/json/i;
-        const isJSON = regex.test(response.headers.get('Content-Type') || '');
+        const regex: RegExp = /application\/json/i;
+        const isJSON: boolean = regex.test(response.headers.get('Content-Type') || '');
         
         if(isJSON) {
           return response.json();

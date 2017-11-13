@@ -1,8 +1,10 @@
-import { EventEmitter } from 'events';
-import * as Immutable from 'immutable';
-import { chain, isArray, isNull, isPlainObject, isString, isUndefined } from 'lodash';
-import { ApiError } from './errors/ApiError';
-export class HunterUtil extends EventEmitter {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const events_1 = require("events");
+const Immutable = require("immutable");
+const lodash_1 = require("lodash");
+const ApiError_1 = require("./errors/ApiError");
+class HunterUtil extends events_1.EventEmitter {
     off(event, listener) {
         this.removeListener(event, listener);
     }
@@ -19,10 +21,11 @@ export class HunterUtil extends EventEmitter {
         return this.ajax(url, 'DELETE', params, options);
     }
     ajax(url, method, params, options = {}) {
-        let { headers, token } = options;
+        const { headers, token } = options;
         const { isImmutable } = options;
         url = (url || '').trim();
-        token = (token || '').trim();
+        const formatToken = (token || '').trim();
+        const formatHeaders = headers || new Headers();
         method = (method || 'GET').toUpperCase();
         if (params && method === 'GET') {
             url = `${url}?${this.queryString(params)}`;
@@ -31,12 +34,11 @@ export class HunterUtil extends EventEmitter {
         else if (params) {
             params = JSON.stringify(params);
         }
-        if (token !== '') {
-            headers = headers || {};
-            headers.Authorization = `Bearer ${token}`;
+        if (formatToken !== '') {
+            formatHeaders.set('Authorization', `Bearer ${formatToken}`);
         }
         let isJSON;
-        return fetch(url, { body: params, headers, method })
+        return fetch(url, { body: params, headers: formatHeaders, method })
             .then((response) => {
             const regex = /application\/json/i;
             isJSON = regex.test(response.headers.get('Content-Type') || '');
@@ -57,9 +59,9 @@ export class HunterUtil extends EventEmitter {
         })
             .catch((error) => {
             if ((error || {}).message === 'only absolute urls are supported') {
-                error = new ApiError([{ message: 'invalid_url' }], error);
+                error = new ApiError_1.ApiError([{ message: 'invalid_url' }], error);
             }
-            error = new ApiError([{ message: 'network_error' }], error);
+            error = new ApiError_1.ApiError([{ message: 'network_error' }], error);
             this.emit('rip_hunter_error', error);
             throw error;
         });
@@ -73,18 +75,18 @@ export class HunterUtil extends EventEmitter {
         if (Immutable.Iterable.isIterable(obj)) {
             return this.toGQL(obj.toJS());
         }
-        else if (isString(obj)) {
+        else if (lodash_1.isString(obj)) {
             return JSON.stringify(obj);
         }
-        else if (isPlainObject(obj)) {
-            obj = chain(obj).omit(isUndefined).omit(isNull).value();
+        else if (lodash_1.isPlainObject(obj)) {
+            obj = lodash_1.chain(obj).omit(lodash_1.isUndefined).omit(lodash_1.isNull).value();
             const props = [];
             Object.keys(obj).map((key) => {
                 const item = obj[key];
-                if (isPlainObject(item)) {
+                if (lodash_1.isPlainObject(item)) {
                     props.push(this.toGQL(item));
                 }
-                else if (isArray(item)) {
+                else if (lodash_1.isArray(item)) {
                     const list = item.map((o) => this.toGQL(o));
                     props.push(`${key}: [${list.join(', ')}]`);
                 }
@@ -103,7 +105,7 @@ export class HunterUtil extends EventEmitter {
                 return `{${props.join(', ')}}`;
             }
         }
-        else if (isArray(obj)) {
+        else if (lodash_1.isArray(obj)) {
             return `[${obj.map((o) => this.toGQL(o)).toString()}]`;
         }
         else {
@@ -120,21 +122,14 @@ export class HunterUtil extends EventEmitter {
     }
     _getGraph(url, body, options = {}) {
         const { isImmutable } = options;
-        let { headers, token } = options;
+        const { headers, token } = options;
         url = url ? url.trim() : '';
-        token = (token || '').trim();
-        if (!headers) {
-            headers = {
-                'Content-Type': 'application/graphql'
-            };
+        const formatToken = (token || '').trim();
+        const formatHeaders = headers || new Headers({ 'Content-Type': 'application/graphql' });
+        if (formatToken !== '') {
+            formatHeaders.set('Authorization', `Bearer ${formatToken}`);
         }
-        else {
-            headers = {};
-        }
-        if (token !== '') {
-            headers.Authorization = `Bearer ${token}`;
-        }
-        return fetch(url, { body, headers, method: 'post' })
+        return fetch(url, { body, headers: formatHeaders, method: 'post' })
             .then((response) => {
             const regex = /application\/json/i;
             const isJSON = regex.test(response.headers.get('Content-Type') || '');
@@ -147,9 +142,9 @@ export class HunterUtil extends EventEmitter {
         })
             .catch((error) => {
             if ((error || {}).message === 'only absolute urls are supported') {
-                return Promise.reject(new ApiError([{ message: 'invalid_url' }], error));
+                return Promise.reject(new ApiError_1.ApiError([{ message: 'invalid_url' }], error));
             }
-            return Promise.reject(new ApiError([{ message: 'network_error' }], error));
+            return Promise.reject(new ApiError_1.ApiError([{ message: 'network_error' }], error));
         })
             .then((json) => {
             if (!json || json.errors) {
@@ -157,9 +152,9 @@ export class HunterUtil extends EventEmitter {
                     json = { errors: [{ message: 'api_error' }] };
                 }
                 else if ((json.errors || []).some((o) => o.message === 'Must provide query string.')) {
-                    return Promise.reject(new ApiError([{ message: 'required_query' }], new Error()));
+                    return Promise.reject(new ApiError_1.ApiError([{ message: 'required_query' }], new Error()));
                 }
-                return Promise.reject(new ApiError(json.errors, new Error()));
+                return Promise.reject(new ApiError_1.ApiError(json.errors, new Error()));
             }
             else {
                 const results = json.data || {};
@@ -168,7 +163,7 @@ export class HunterUtil extends EventEmitter {
         })
             .catch((error) => {
             if (!error.source) {
-                error = new ApiError([{ message: 'network_error' }], error);
+                error = new ApiError_1.ApiError([{ message: 'network_error' }], error);
             }
             this.emit('rip_hunter_error', error);
             return Promise.reject(error);
@@ -178,5 +173,6 @@ export class HunterUtil extends EventEmitter {
         return str.replace(/\s+(?=(?:[^'"]*['"][^'"]*['"])*[^'"]*$)/gm, '');
     }
 }
-export const Hunter = new HunterUtil();
+exports.HunterUtil = HunterUtil;
+exports.Hunter = new HunterUtil();
 //# sourceMappingURL=Hunter.js.map

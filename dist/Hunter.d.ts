@@ -1,10 +1,7 @@
 /// <reference types="node" />
 import { EventEmitter } from 'events';
-export interface RequestHeadersType {
-    readonly [key: string]: any;
-}
 export interface HunterOptionsType {
-    readonly headers?: RequestHeadersType;
+    readonly headers?: Headers;
     readonly isImmutable?: boolean;
     readonly token?: string;
 }

@@ -1,3 +1,3 @@
 // require('react-native-mock/mock');
-import fetch from 'whatwg-fetch';
+var fetch = require('isomorphic-fetch');
 global.fetch = fetch;

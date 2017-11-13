@@ -1,6 +1,6 @@
 {
   "name": "rip-hunter",
-  "version": "1.2.9",
+  "version": "1.2.10",
   "description": "JS utilities for AJAX and GraphQL",
   "license": "MIT",
   "main": "index.js",
@@ -26,7 +26,7 @@
     "npm": ">3.3.6"
   },
   "scripts": {
-    "compile": "tsc",
+    "compile": "tsc -p tsconfig.json",
     "docs": "typedoc --target ES5 --module commonjs --out docs/ src/ --exclude src/index.ts --excludeExternals --hideGenerator",
     "lint": "tslint -c tslint.json 'src/**/*.{ts,tsx}'",
     "pretest": "npm run lint",
@@ -34,20 +34,21 @@
     "prepublishOnly": "NODE_ENV=production npm test && npm run compile"
   },
   "dependencies": {
-    "immutable": "^3.8.1",
+    "immutable": "^3.8.2",
     "lodash": "^4.17.4"
   },
   "devDependencies": {
-    "@types/fetch-mock": "^5.12.0",
-    "@types/jest": "^20.0.7",
-    "@types/node": "^8.0.24",
-    "fetch-mock": "^5.12.2",
-    "jest": "^20.0.4",
-    "ts-jest": "^20.0.10",
-    "tslint": "^5.6.0",
+    "@types/fetch-mock": "^5.12.2",
+    "@types/jest": "^21.1.6",
+    "@types/node": "^8.0.51",
+    "fetch-mock": "^5.13.1",
+    "isomorphic-fetch": "^2.2.1",
+    "jest": "^21.2.1",
+    "ts-jest": "^21.2.2",
+    "tslint": "^5.8.0",
     "tslint-eslint-rules": "^4.1.1",
-    "typedoc": "^0.8.0",
-    "typescript": "^2.4.2"
+    "typedoc": "^0.9.0",
+    "typescript": "^2.6.1"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -55,16 +56,19 @@
       "tsx",
       "js"
     ],
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
+    ],
     "testURL": "http://localhost",
     "transform": {
       "^.+\\.(ts|tsx)$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
     },
+    "testMatch": [
+      "<rootDir>/src/**/*test.ts?(x)"
+    ],
     "testPathIgnorePatterns": [
       "<rootDir>/node_modules/",
       "<rootDir>/dist/"
-    ],
-    "testMatch": [
-      "<rootDir>/src/**/*test.ts?(x)"
     ],
     "verbose": false
   }
