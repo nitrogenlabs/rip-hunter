@@ -1,7 +1,5 @@
-import 'es6-promise/auto';
 import {EventEmitter} from 'events';
 import * as Immutable from 'immutable';
-import 'isomorphic-fetch';
 import {
   chain,
   isArray,
@@ -12,6 +10,10 @@ import {
 } from 'lodash';
 import {ApiError} from './errors/ApiError';
 
+if (typeof window === 'undefined') {
+  require('es6-promise/auto');
+  require('isomorphic-fetch');
+}
 /**
  * Copyright (c) 2017, Nitrogen Labs, Inc.
  * Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms.

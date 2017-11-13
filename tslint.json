@@ -170,6 +170,7 @@
     "no-invalid-regexp": true,
     "no-regex-spaces": true,
     "no-unexpected-multiline": true,
+    "no-var-requires": false,
     "prefer-conditional-expression": false,
     "ter-func-call-spacing": [
       true
