@@ -1,5 +1,7 @@
+import 'es6-promise/auto';
 import {EventEmitter} from 'events';
 import * as Immutable from 'immutable';
+import 'isomorphic-fetch';
 import {
   chain,
   isArray,

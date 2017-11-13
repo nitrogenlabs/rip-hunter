@@ -1,7 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+require("es6-promise/auto");
 const events_1 = require("events");
 const Immutable = require("immutable");
+require("isomorphic-fetch");
 const lodash_1 = require("lodash");
 const ApiError_1 = require("./errors/ApiError");
 class HunterUtil extends events_1.EventEmitter {

@@ -1,5 +1,7 @@
 /// <reference types="node" />
+import 'es6-promise/auto';
 import { EventEmitter } from 'events';
+import 'isomorphic-fetch';
 export interface HunterOptionsType {
     readonly headers?: Headers;
     readonly isImmutable?: boolean;

@@ -1,6 +1,6 @@
 {
   "name": "rip-hunter",
-  "version": "1.2.10",
+  "version": "1.2.11",
   "description": "JS utilities for AJAX and GraphQL",
   "license": "MIT",
   "main": "index.js",
@@ -34,7 +34,9 @@
     "prepublishOnly": "NODE_ENV=production npm test && npm run compile"
   },
   "dependencies": {
+    "es6-promise": "^4.1.1",
     "immutable": "^3.8.2",
+    "isomorphic-fetch": "^2.2.1",
     "lodash": "^4.17.4"
   },
   "devDependencies": {
@@ -42,7 +44,6 @@
     "@types/jest": "^21.1.6",
     "@types/node": "^8.0.51",
     "fetch-mock": "^5.13.1",
-    "isomorphic-fetch": "^2.2.1",
     "jest": "^21.2.1",
     "ts-jest": "^21.2.2",
     "tslint": "^5.8.0",
