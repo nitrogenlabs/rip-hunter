@@ -1,9 +1,10 @@
 import * as Immutable from 'immutable';
+
 import {ApiError} from './errors/ApiError';
 import {Hunter} from './Hunter';
 
 describe('Hunter', () => {
-  const fetchMock = require('fetch-mock');
+  const fetchMock = require('fetch-mock/es5/client');
   const url = 'http://www.test.com/graphql';
 
   describe('#toGQL', () => {
@@ -49,7 +50,7 @@ describe('Hunter', () => {
         headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
-      });
+      }, {overwriteRoutes: true});
 
       Hunter.query(url, gql)
         .then((results) => {
@@ -66,7 +67,7 @@ describe('Hunter', () => {
         headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
-      });
+      }, {overwriteRoutes: true});
 
       Hunter.query(url, gql, {token})
         .then(() => {
@@ -83,7 +84,7 @@ describe('Hunter', () => {
         headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
-      });
+      }, {overwriteRoutes: true});
 
       Hunter.query(url, gql)
         .then(() => {
@@ -92,28 +93,6 @@ describe('Hunter', () => {
         })
         .catch((error: ApiError) => {
           expect(error.errors[0]).toBe('test_error');
-          done();
-        });
-    });
-
-    it('should emit an error event', (done) => {
-      fetchMock.postOnce(url, {
-        body: {errors},
-        headers: new Headers({'Content-Type': 'application/json'}),
-        sendAsJson: true,
-        status: 200
-      });
-
-      const spy: jest.Mock<any> = jest.fn();
-      Hunter.on('rip_hunter_error', spy);
-
-      Hunter.query(url, gql)
-        .then(() => {
-          expect(false).toBe(true);
-          done();
-        })
-        .catch(() => {
-          expect(spy.mock.calls.length).toBe(1);
           done();
         });
     });
@@ -130,7 +109,7 @@ describe('Hunter', () => {
         headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
-      });
+      }, {overwriteRoutes: true});
 
       Hunter.mutation(url, gql)
         .then((results) => {
@@ -147,7 +126,7 @@ describe('Hunter', () => {
         headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
-      });
+      }, {overwriteRoutes: true});
 
       Hunter.mutation(url, gql, {token})
         .then(() => {
@@ -164,7 +143,7 @@ describe('Hunter', () => {
         headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
-      });
+      }, {overwriteRoutes: true});
 
       Hunter.mutation(url, gql)
         .then(() => {
@@ -173,28 +152,6 @@ describe('Hunter', () => {
         })
         .catch((error: ApiError) => {
           expect(error.errors[0]).toBe('test_error');
-          done();
-        });
-    });
-
-    it('should emit an error event', (done) => {
-      fetchMock.postOnce(url, {
-        body: {errors},
-        headers: new Headers({'Content-Type': 'application/json'}),
-        sendAsJson: true,
-        status: 200
-      });
-
-      const spy: jest.Mock<any> = jest.fn();
-      Hunter.on('rip_hunter_error', spy);
-
-      Hunter.mutation(url, gql)
-        .then(() => {
-          expect(false).toBe(true);
-          done();
-        })
-        .catch(() => {
-          expect(spy.mock.calls.length).toBe(1);
           done();
         });
     });

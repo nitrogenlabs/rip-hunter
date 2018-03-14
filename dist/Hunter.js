@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("events");
@@ -14,32 +15,51 @@ class HunterUtil extends events_1.EventEmitter {
     }
     get(url, params, options) {
         return this.ajax(url, 'GET', params, options);
+=======
+import 'isomorphic-fetch';
+import * as Immutable from 'immutable';
+import { chain, isArray, isNull, isPlainObject, isString, isUndefined } from 'lodash';
+import { ApiError } from './errors/ApiError';
+export class Hunter {
+    static get(url, params, options) {
+        return Hunter.ajax(url, 'GET', params, options);
+>>>>>>> Update packages
     }
-    post(url, params, options) {
-        return this.ajax(url, 'POST', params, options);
+    static post(url, params, options) {
+        return Hunter.ajax(url, 'POST', params, options);
     }
-    put(url, params, options) {
-        return this.ajax(url, 'PUT', params, options);
+    static put(url, params, options) {
+        return Hunter.ajax(url, 'PUT', params, options);
     }
-    del(url, params, options) {
-        return this.ajax(url, 'DELETE', params, options);
+    static del(url, params, options) {
+        return Hunter.ajax(url, 'DELETE', params, options);
     }
+<<<<<<< HEAD
     ajax(url, method, params, options = {}) {
         const { headers, token } = options;
+=======
+    static ajax(url, method, params, options = {}) {
+        let { headers, token } = options;
+>>>>>>> Update packages
         const { isImmutable } = options;
         url = (url || '').trim();
         const formatToken = (token || '').trim();
         const formatHeaders = headers || new Headers();
         method = (method || 'GET').toUpperCase();
         if (params && method === 'GET') {
-            url = `${url}?${this.queryString(params)}`;
+            url = `${url}?${Hunter.queryString(params)}`;
             params = null;
         }
         else if (params) {
             params = JSON.stringify(params);
         }
+<<<<<<< HEAD
         if (formatToken !== '') {
             formatHeaders.set('Authorization', `Bearer ${formatToken}`);
+=======
+        if (token !== '') {
+            headers = Object.assign({}, (headers || {}), { Authorization: `Bearer ${token}` });
+>>>>>>> Update packages
         }
         let isJSON;
         return fetch(url, { body: params, headers: formatHeaders, method })
@@ -65,19 +85,23 @@ class HunterUtil extends events_1.EventEmitter {
             if ((error || {}).message === 'only absolute urls are supported') {
                 error = new ApiError_1.ApiError([{ message: 'invalid_url' }], error);
             }
+<<<<<<< HEAD
             error = new ApiError_1.ApiError([{ message: 'network_error' }], error);
             this.emit('rip_hunter_error', error);
             throw error;
+=======
+            throw new ApiError([{ message: 'network_error' }], error);
+>>>>>>> Update packages
         });
     }
-    queryString(json) {
+    static queryString(json) {
         return Object
             .keys(json)
             .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(json[key])}`).join('&');
     }
-    toGQL(obj) {
+    static toGQL(obj) {
         if (Immutable.Iterable.isIterable(obj)) {
-            return this.toGQL(obj.toJS());
+            return Hunter.toGQL(obj.toJS());
         }
         else if (lodash_1.isString(obj)) {
             return JSON.stringify(obj);
@@ -87,11 +111,19 @@ class HunterUtil extends events_1.EventEmitter {
             const props = [];
             Object.keys(obj).map((key) => {
                 const item = obj[key];
+<<<<<<< HEAD
                 if (lodash_1.isPlainObject(item)) {
                     props.push(this.toGQL(item));
                 }
                 else if (lodash_1.isArray(item)) {
                     const list = item.map((o) => this.toGQL(o));
+=======
+                if (isPlainObject(item)) {
+                    props.push(Hunter.toGQL(item));
+                }
+                else if (isArray(item)) {
+                    const list = item.map((o) => Hunter.toGQL(o));
+>>>>>>> Update packages
                     props.push(`${key}: [${list.join(', ')}]`);
                 }
                 else {
@@ -109,29 +141,48 @@ class HunterUtil extends events_1.EventEmitter {
                 return `{${props.join(', ')}}`;
             }
         }
+<<<<<<< HEAD
         else if (lodash_1.isArray(obj)) {
             return `[${obj.map((o) => this.toGQL(o)).toString()}]`;
+=======
+        else if (isArray(obj)) {
+            return `[${obj.map((o) => Hunter.toGQL(o)).toString()}]`;
+>>>>>>> Update packages
         }
         else {
             return obj;
         }
     }
-    query(url, body, options) {
+    static query(url, body, options) {
         body = `query ${body}`;
-        return this._getGraph(url, body, options);
+        return Hunter.getGraph(url, body, options);
     }
-    mutation(url, body, options) {
+    static mutation(url, body, options) {
         body = `mutation ${body}`;
-        return this._getGraph(url, body, options);
+        return Hunter.getGraph(url, body, options);
     }
-    _getGraph(url, body, options = {}) {
+    static getGraph(url, body, options = {}) {
         const { isImmutable } = options;
         const { headers, token } = options;
         url = url ? url.trim() : '';
+<<<<<<< HEAD
         const formatToken = (token || '').trim();
         const formatHeaders = headers || new Headers({ 'Content-Type': 'application/graphql' });
         if (formatToken !== '') {
             formatHeaders.set('Authorization', `Bearer ${formatToken}`);
+=======
+        token = (token || '').trim();
+        if (!headers) {
+            headers = {
+                'Content-Type': 'application/graphql'
+            };
+        }
+        else {
+            headers = {};
+        }
+        if (token !== '') {
+            headers = Object.assign({}, headers, { Authorization: `Bearer ${token}` });
+>>>>>>> Update packages
         }
         return fetch(url, { body, headers: formatHeaders, method: 'post' })
             .then((response) => {
@@ -169,14 +220,16 @@ class HunterUtil extends events_1.EventEmitter {
             if (!error.source) {
                 error = new ApiError_1.ApiError([{ message: 'network_error' }], error);
             }
-            this.emit('rip_hunter_error', error);
             return Promise.reject(error);
         });
     }
-    removeSpaces(str) {
+    static removeSpaces(str) {
         return str.replace(/\s+(?=(?:[^'"]*['"][^'"]*['"])*[^'"]*$)/gm, '');
     }
 }
+<<<<<<< HEAD
 exports.HunterUtil = HunterUtil;
 exports.Hunter = new HunterUtil();
+=======
+>>>>>>> Update packages
 //# sourceMappingURL=Hunter.js.map
