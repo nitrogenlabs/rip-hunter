@@ -30,11 +30,12 @@
     "lint": "tslint -c tslint.json 'src/**/*.{ts,tsx}'",
     "prepublishOnly": "NODE_ENV=production npm test && npm run compile",
     "pretest": "npm run lint",
+    "reset": "rm -rf node_modules yarn.lock",
     "test": "jest",
     "update": "yarn upgrade-interactive --latest"
   },
   "dependencies": {
-    "es6-promise": "^4.1.1",
+    "es6-promise": "^4.2.4",
     "immutable": "^3.8.2",
     "isomorphic-fetch": "^2.2.1",
     "lodash": "^4.17.4"
