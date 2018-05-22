@@ -1,10 +1,11 @@
+import {FetchMock} from '@nlabs/fetch-mock';
 import * as Immutable from 'immutable';
 
 import {ApiError} from './errors/ApiError';
 import {Hunter} from './Hunter';
 
 describe('Hunter', () => {
-  const fetchMock = require('fetch-mock/es5/client');
+  const fetchMock = new FetchMock();
   const url = 'http://www.test.com/graphql';
 
   describe('#toGQL', () => {
@@ -44,13 +45,14 @@ describe('Hunter', () => {
     const data: object = {hello: 'world'};
     const errors: Error[] = [{name: 'Test Error', message: 'test_error'}];
 
+    // console.log('fetchMock', fetchMock);
     it('should get a successful response from a query', (done) => {
       fetchMock.postOnce(url, {
         body: {data},
         headers: new Headers({'Content-Type': 'application/json'}),
         sendAsJson: true,
         status: 200
-      }, {overwriteRoutes: true});
+      });
 
       Hunter.query(url, gql)
         .then((results) => {

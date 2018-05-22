@@ -1,5 +1,9 @@
-/build
-/src
-/node_modules
-/test
 .babelrc
+.vscode
+.travis.yml
+/build
+/coverage
+/node_modules
+/src
+/test
+/yarn.lock

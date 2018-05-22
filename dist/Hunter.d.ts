@@ -1,17 +1,15 @@
-<<<<<<< HEAD
-/// <reference types="node" />
-import { EventEmitter } from 'events';
-=======
-import 'isomorphic-fetch';
-export interface RequestHeadersType {
-    readonly [key: string]: any;
-}
->>>>>>> Update packages
+/**
+ * Copyright (c) 2017-Present, Nitrogen Labs, Inc.
+ * Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms.
+ */
 export interface HunterOptionsType {
     readonly headers?: Headers;
     readonly isImmutable?: boolean;
     readonly token?: string;
 }
+/**
+ * Hunter: JS utilities for GraphQL
+ */
 export declare class Hunter {
     static get(url: string, params?: any, options?: HunterOptionsType): Promise<any>;
     static post(url: string, params?: any, options?: HunterOptionsType): Promise<any>;

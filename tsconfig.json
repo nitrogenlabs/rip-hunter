@@ -1,43 +1,38 @@
 {
   "compilerOptions": {
-    "allowJs": false,
     "allowSyntheticDefaultImports": true,
+    "baseUrl": "./src",
     "declaration": true,
+    "emitDeclarationOnly": true,
+    "esModuleInterop": true,
     "jsx": "react",
     "lib": [
-      "dom",
-      "es2015",
-      "es5",
-      "es6"
+      "esnext",
+      "dom"
     ],
     "module": "commonjs",
     "moduleResolution": "node",
-    "noImplicitAny": false,
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noStrictGenericChecks": true,
     "noUnusedLocals": true,
-    "outDir": "dist",
-    "preserveConstEnums": true,
-    "pretty": false,
-    "removeComments": true,
-    "rootDir": "src",
+    "outDir": "./dist",
+    "pretty": true,
+    "skipLibCheck": true,
     "sourceMap": true,
-    "strictNullChecks": false,
-    "target": "es2015"
+    "target": "esnext",
+    "typeRoots": [
+      "node_modules/@types",
+      "node_modules/json-d-ts"
+    ]
   },
-  "compileOnSave": false,
-  "exclude": [
-    "**/*.test.*",
-    "./dist",
-    "./docs",
-    "./node_modules"
-  ],
   "include": [
     "./src/**/*"
   ],
-  "types": [
-    "./src/lib/types",
-    "jest"
+  "exclude": [
+    "**/*.test.*",
+    "./dist",
+    "./node_modules",
+    "./test"
   ]
 }

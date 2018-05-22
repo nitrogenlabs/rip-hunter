@@ -1,12 +1,18 @@
 import * as Immutable from 'immutable';
-import {chain, isArray, isNull, isPlainObject, isString, isUndefined} from 'lodash';
+import isArray from 'lodash/isArray';
+import isNull from 'lodash/isNull';
+import isPlainObject from 'lodash/isPlainObject';
+import isString from 'lodash/isString';
+import isUndefined from 'lodash/isUndefined';
+import omit from 'lodash/omit';
 
 import {ApiError} from './errors/ApiError';
 
-if (typeof window === 'undefined') {
-  require('es6-promise/auto');
-  require('isomorphic-fetch');
+if(typeof window === 'undefined') {
+  // require('es6-promise/auto');
+  require('fetch-everywhere');
 }
+
 /**
  * Copyright (c) 2017-Present, Nitrogen Labs, Inc.
  * Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms.
@@ -38,7 +44,7 @@ export class Hunter {
   static del(url: string, params?, options?: HunterOptionsType): Promise<any> {
     return Hunter.ajax(url, 'DELETE', params, options);
   }
-  
+
   static ajax(url: string, method: string, params?, options: HunterOptionsType = {}): Promise<any> {
     const {headers, token} = options;
     const {isImmutable} = options;
@@ -107,10 +113,11 @@ export class Hunter {
     } else if(isString(obj)) {
       return JSON.stringify(obj);
     } else if(isPlainObject(obj)) {
-      obj = chain(obj).omit(isUndefined).omit(isNull).value();
+      let cleanObj = omit(obj, isUndefined);
+      cleanObj = omit(cleanObj, isNull);
       const props = [];
 
-      Object.keys(obj).map((key: string) => {
+      Object.keys(cleanObj).map((key: string) => {
         const item = obj[key];
 
         if(isPlainObject(item)) {
@@ -157,7 +164,7 @@ export class Hunter {
     url = url ? url.trim() : '';
     const formatToken: string = (token || '').trim();
     const formatHeaders: Headers = headers || new Headers({'Content-Type': 'application/graphql'});
-    
+
     if(formatToken !== '') {
       formatHeaders.set('Authorization', `Bearer ${formatToken}`);
     }
@@ -166,7 +173,7 @@ export class Hunter {
       .then((response: Response) => {
         const regex: RegExp = /application\/json/i;
         const isJSON: boolean = regex.test(response.headers.get('Content-Type') || '');
-        
+
         if(isJSON) {
           return response.json();
         } else {
