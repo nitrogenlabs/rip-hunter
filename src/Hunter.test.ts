@@ -43,7 +43,7 @@ describe('Hunter', () => {
   describe('#query', () => {
     const gql: string = '{ app { ping } }';
     const data: object = {hello: 'world'};
-    const errors: Error[] = [{name: 'Test Error', message: 'test_error'}];
+    const errors: Error[] = [{message: 'test_error', name: 'Test Error'}];
 
     // console.log('fetchMock', fetchMock);
     it('should get a successful response from a query', (done) => {
@@ -103,7 +103,7 @@ describe('Hunter', () => {
   describe('#mutation', () => {
     const gql: string = '{ app { ping } }';
     const data: object = {hello: 'world'};
-    const errors: Error[] = [{name: 'Test Error', message: 'test_error'}];
+    const errors: Error[] = [{message: 'test_error', name: 'Test Error'}];
 
     it('should get a successful response from a query', (done) => {
       fetchMock.postOnce(url, {

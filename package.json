@@ -1,14 +1,17 @@
 {
-  "name": "rip-hunter",
-  "version": "1.3.3",
+  "name": "@nlabs/rip-hunter",
+  "version": "1.3.4",
   "description": "JS utilities for AJAX and GraphQL",
   "license": "MIT",
   "main": "index.js",
   "keywords": [
     "ajax",
+    "api",
+    "axios",
     "fetch",
     "graphql",
     "nitrogenlabs",
+    "rest",
     "rip-hunter",
     "typescript"
   ],
@@ -26,24 +29,25 @@
     "url": "https://github.com/nitrogenlabs/rip-hunter/issues"
   },
   "scripts": {
-    "compile": "lex compile -t -c tsconfig.json",
+    "build": "lex compile -t",
+    "clean": "lex clean",
     "lint": "eslint ./src --ext .js,.jsx,.ts,.tsx",
-    "prepublishOnly": "yarn lint && yarn test && yarn compile",
-    "reset": "rm -rf node_modules yarn.lock package-lock.json && yarn",
+    "prepublishOnly": "yarn lint && yarn test && yarn build",
     "test": "lex test -t",
-    "update": "yarn upgrade-interactive --latest"
+    "update": "lex update -i"
   },
   "dependencies": {
-    "@nlabs/fetch-mock": "^0.3.0",
+    "@nlabs/fetch-mock": "^0.3.1",
     "es6-promise": "^4.2.4",
     "fetch-everywhere": "^1.0.5",
     "immutable": "^3.8.2",
     "lodash": "^4.17.4"
   },
   "devDependencies": {
-    "@types/jest": "^22.2.2",
-    "@types/node": "^10.1.2",
-    "eslint": "^4.19.1",
-    "eslint-config-styleguidejs": "^0.5.0"
+    "@types/jest": "^23.3.1",
+    "@types/node": "^10.7.1",
+    "eslint": "^5.4.0",
+    "eslint-config-styleguidejs": "^0.7.7",
+    "typescript": "^3.0.1"
   }
 }

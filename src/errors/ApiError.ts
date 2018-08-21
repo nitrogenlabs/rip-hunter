@@ -1,7 +1,7 @@
 export class ApiError extends Error {
   source: Error;
   errors: string[];
-  
+
   constructor(list, error) {
     super('API Error');
     this.source = error;

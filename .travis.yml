@@ -5,4 +5,5 @@ install:
   - npm install -g yarn @nlabs/lex
   - yarn
 script:
+  - yarn build
   - yarn test

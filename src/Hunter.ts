@@ -9,7 +9,6 @@ import omit from 'lodash/omit';
 import {ApiError} from './errors/ApiError';
 
 if(typeof window === 'undefined') {
-  // require('es6-promise/auto');
   require('fetch-everywhere');
 }
 
@@ -49,19 +48,24 @@ export class Hunter {
     const {headers, token} = options;
     const {isImmutable} = options;
 
-    url = (url || '').trim();
+    let formatUrl: string = (url || '').trim();
     const formatToken: string = (token || '').trim();
     const formatHeaders: Headers = headers || new Headers();
 
     // Method
-    method = (method || 'GET').toUpperCase();
+    const formatMethod: string = (method || 'GET').toUpperCase();
+    let formatParams;
 
     // Parameters
-    if(params && method === 'GET') {
-      url = `${url}?${Hunter.queryString(params)}`;
-      params = null;
+    if(params && formatMethod === 'GET') {
+      formatUrl = `${formatUrl}?${Hunter.queryString(params)}`;
+      formatParams = null;
     } else if(params) {
-      params = JSON.stringify(params);
+      formatHeaders.set('Accept', 'application/json');
+      formatHeaders.set('Content-Type', 'application/json');
+      formatParams = JSON.stringify(params);
+    } else {
+      formatParams = params;
     }
 
     // Authentication token
@@ -69,31 +73,31 @@ export class Hunter {
       formatHeaders.set('Authorization', `Bearer ${formatToken}`);
     }
 
-    let isJSON: boolean;
+    let isResponseJSON: boolean;
 
-    return fetch(url, {body: params, headers: formatHeaders, method})
+    return fetch(formatUrl, {body: formatParams, headers: formatHeaders, method: formatMethod})
       .then((response: Response) => {
         const regex = /application\/json/i;
 
         // Check if response is json
-        isJSON = regex.test(response.headers.get('Content-Type') || '');
+        isResponseJSON = regex.test(response.headers.get('Content-Type') || '');
 
-        if(isJSON) {
+        if(isResponseJSON) {
           return response.json();
-        } else {
-          return response.text();
         }
+
+        return response.text();
       })
       .then((results) => {
-        if(isJSON) {
+        if(isResponseJSON) {
           return isImmutable ? Immutable.fromJS(results) : results;
-        } else {
-          return results;
         }
+
+        return results;
       })
       .catch((error) => {
         if((error || {}).message === 'only absolute urls are supported') {
-          error = new ApiError([{message: 'invalid_url'}], error);
+          throw new ApiError([{message: 'invalid_url'}], error);
         }
 
         throw new ApiError([{message: 'network_error'}], error);
@@ -115,15 +119,14 @@ export class Hunter {
     } else if(isPlainObject(obj)) {
       let cleanObj = omit(obj, isUndefined);
       cleanObj = omit(cleanObj, isNull);
-      const props = [];
 
-      Object.keys(cleanObj).map((key: string) => {
+      const gqlProps: string[] = Object.keys(cleanObj).reduce((props: string[], key: string) => {
         const item = obj[key];
 
         if(isPlainObject(item)) {
           props.push(Hunter.toGQL(item));
         } else if(isArray(item)) {
-          const list = item.map((o) => Hunter.toGQL(o));
+          const list = item.map((listItem) => Hunter.toGQL(listItem));
           props.push(`${key}: [${list.join(', ')}]`);
         } else {
           const val = JSON.stringify(item);
@@ -132,36 +135,38 @@ export class Hunter {
             props.push(`${key}: ${val}`);
           }
         }
-      });
 
-      const values = props.join(', ');
+        return props;
+      }, []);
+
+      const values = gqlProps.join(', ');
 
       if(values === '') {
         return '""';
-      } else {
-        return `{${props.join(', ')}}`;
       }
+
+      return `{${gqlProps.join(', ')}}`;
     } else if(isArray(obj)) {
-      return `[${obj.map((o) => Hunter.toGQL(o)).toString()}]`;
-    } else {
-      return obj;
+      return `[${obj.map((objItem) => Hunter.toGQL(objItem)).toString()}]`;
     }
+
+    return obj;
   }
 
   static query(url: string, body?, options?: HunterOptionsType): Promise<any> {
-    body = `query ${body}`;
-    return Hunter.getGraph(url, body, options);
+    const formatBody: string = `query ${body}`;
+    return Hunter.getGraph(url, formatBody, options);
   }
 
   static mutation(url: string, body?, options?: HunterOptionsType): Promise<any> {
-    body = `mutation ${body}`;
-    return Hunter.getGraph(url, body, options);
+    const formatBody: string = `mutation ${body}`;
+    return Hunter.getGraph(url, formatBody, options);
   }
 
   static getGraph(url: string, body?, options: HunterOptionsType = {}): Promise<any> {
     const {isImmutable} = options;
     const {headers, token} = options;
-    url = url ? url.trim() : '';
+    const formatUrl: string = url ? url.trim() : '';
     const formatToken: string = (token || '').trim();
     const formatHeaders: Headers = headers || new Headers({'Content-Type': 'application/graphql'});
 
@@ -169,16 +174,16 @@ export class Hunter {
       formatHeaders.set('Authorization', `Bearer ${formatToken}`);
     }
 
-    return fetch(url, {body, headers: formatHeaders, method: 'post'})
+    return fetch(formatUrl, {body, headers: formatHeaders, method: 'post'})
       .then((response: Response) => {
         const regex: RegExp = /application\/json/i;
         const isJSON: boolean = regex.test(response.headers.get('Content-Type') || '');
 
         if(isJSON) {
           return response.json();
-        } else {
-          return {data: {}};
         }
+
+        return {data: {}};
       })
       .catch((error) => {
         if((error || {}).message === 'only absolute urls are supported') {
@@ -188,25 +193,28 @@ export class Hunter {
         return Promise.reject(new ApiError([{message: 'network_error'}], error));
       })
       .then((json) => {
-        if(!json || json.errors) {
-          if(!json) {
-            json = {errors: [{message: 'api_error'}]};
-          } else if((json.errors || []).some((o) => o.message === 'Must provide query string.')) {
+        let updatedJson = json;
+        if(!updatedJson || updatedJson.errors) {
+          if(!updatedJson) {
+            updatedJson = {errors: [{message: 'api_error'}]};
+          } else if((json.errors || []).some((error) => error.message === 'Must provide query string.')) {
             return Promise.reject(new ApiError([{message: 'required_query'}], new Error()));
           }
 
           return Promise.reject(new ApiError(json.errors, new Error()));
-        } else {
-          const results = json.data || {};
-          return isImmutable ? Immutable.fromJS(results) : results;
-        }
-      })
-      .catch((error: ApiError) => {
-        if(!error.source) {
-          error = new ApiError([{message: 'network_error'}], error);
         }
 
-        return Promise.reject(error);
+        const results = json.data || {};
+        return isImmutable ? Immutable.fromJS(results) : results;
+      })
+      .catch((error: ApiError) => {
+        let updatedError = error;
+
+        if(!error.source) {
+          updatedError = new ApiError([{message: 'network_error'}], error);
+        }
+
+        return Promise.reject(updatedError);
       });
   }
 
