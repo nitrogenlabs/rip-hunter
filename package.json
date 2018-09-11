@@ -38,16 +38,16 @@
   },
   "dependencies": {
     "@nlabs/fetch-mock": "^0.3.1",
-    "es6-promise": "^4.2.4",
+    "es6-promise": "^4.2.5",
     "fetch-everywhere": "^1.0.5",
     "immutable": "^3.8.2",
     "lodash": "^4.17.4"
   },
   "devDependencies": {
-    "@types/jest": "^23.3.1",
-    "@types/node": "^10.7.1",
-    "eslint": "^5.4.0",
-    "eslint-config-styleguidejs": "^0.7.7",
-    "typescript": "^3.0.1"
+    "@types/jest": "^23.3.2",
+    "@types/node": "^10.9.4",
+    "eslint": "^5.5.0",
+    "eslint-config-styleguidejs": "^0.7.9",
+    "typescript": "^3.0.3"
   }
 }
