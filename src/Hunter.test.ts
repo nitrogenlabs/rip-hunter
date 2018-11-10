@@ -1,5 +1,4 @@
 import {FetchMock} from '@nlabs/fetch-mock';
-import * as Immutable from 'immutable';
 
 import {ApiError} from './errors/ApiError';
 import {Hunter} from './Hunter';
@@ -12,31 +11,25 @@ describe('Hunter', () => {
     it('should convert a string to GQL', () => {
       const str: string = 'test';
       const gql: string = Hunter.toGQL(str);
-      return expect('"test"').toBe(gql);
+      return expect('"test"').toEqual(gql);
     });
 
     it('should convert a number to GQL', () => {
       const num: number = 123;
       const gql: string = Hunter.toGQL(num);
-      return expect(123).toBe(gql);
+      return expect(123).toEqual(gql);
     });
 
     it('should convert a JSON object to GQL', () => {
       const obj: object = {prop: 'test'};
       const gql: string = Hunter.toGQL(obj);
-      return expect('{prop: "test"}').toBe(gql);
+      return expect('{prop: "test"}').toEqual(gql);
     });
 
     it('should convert an array to GQL', () => {
       const array: object[] = [{prop: 'test'}];
       const gql: string = Hunter.toGQL(array);
-      return expect('[{prop: "test"}]').toBe(gql);
-    });
-
-    it('should convert an immutable object to GQL', () => {
-      const obj: Iterable<any> = Immutable.fromJS({prop: 'test'});
-      const gql: string = Hunter.toGQL(obj);
-      return expect('{prop: "test"}').toBe(gql);
+      return expect('[{prop: "test"}]').toEqual(gql);
     });
   });
 
@@ -45,7 +38,6 @@ describe('Hunter', () => {
     const data: object = {hello: 'world'};
     const errors: Error[] = [{message: 'test_error', name: 'Test Error'}];
 
-    // console.log('fetchMock', fetchMock);
     it('should get a successful response from a query', (done) => {
       fetchMock.postOnce(url, {
         body: {data},
@@ -56,7 +48,7 @@ describe('Hunter', () => {
 
       Hunter.query(url, gql)
         .then((results) => {
-          expect(results.hello).toBe('world');
+          expect(results.hello).toEqual('world');
           done();
         })
         .catch(done);
@@ -74,7 +66,7 @@ describe('Hunter', () => {
       Hunter.query(url, gql, {token})
         .then(() => {
           const opts = fetchMock.lastOptions();
-          expect(opts.headers.get('Authorization')).toBe(`Bearer ${token}`);
+          expect(opts.headers.get('Authorization')).toEqual(`Bearer ${token}`);
           done();
         })
         .catch(done);
@@ -90,11 +82,11 @@ describe('Hunter', () => {
 
       Hunter.query(url, gql)
         .then(() => {
-          expect(false).toBe(true);
+          expect(false).toEqual(true);
           done();
         })
         .catch((error: ApiError) => {
-          expect(error.errors[0]).toBe('test_error');
+          expect(error.errors[0]).toEqual('test_error');
           done();
         });
     });
@@ -115,7 +107,7 @@ describe('Hunter', () => {
 
       Hunter.mutation(url, gql)
         .then((results) => {
-          expect(results.hello).toBe('world');
+          expect(results.hello).toEqual('world');
           done();
         })
         .catch(done);
@@ -133,7 +125,7 @@ describe('Hunter', () => {
       Hunter.mutation(url, gql, {token})
         .then(() => {
           const opts = fetchMock.lastOptions();
-          expect(opts.headers.get('Authorization')).toBe(`Bearer ${token}`);
+          expect(opts.headers.get('Authorization')).toEqual(`Bearer ${token}`);
           done();
         })
         .catch(done);
@@ -149,20 +141,167 @@ describe('Hunter', () => {
 
       Hunter.mutation(url, gql)
         .then(() => {
-          expect(false).toBe(true);
+          expect(false).toEqual(true);
           done();
         })
         .catch((error: ApiError) => {
-          expect(error.errors[0]).toBe('test_error');
+          expect(error.errors[0]).toEqual('test_error');
           done();
         });
     });
   });
 
-  describe('#removeSpaces', () => {
+  describe.only('.ajax', () => {
+    const gql: string = '{ app { ping } }';
+
+    it('should be able to post', (done) => {
+      fetchMock.postOnce(url, {
+        body: {test: 'demo'},
+        headers: new Headers({'Content-Type': 'application/json'}),
+        sendAsJson: true,
+        status: 200
+      }, {overwriteRoutes: true});
+
+      Hunter.ajax(url, 'post', gql)
+        .then((response) => {
+          console.log('response', response);
+          expect(response.test).toEqual('demo');
+          done();
+        })
+        .catch((error: ApiError) => {
+          expect(error).toEqual(false);
+          done();
+        });
+    });
+  });
+
+  describe('.getGraph', () => {
+    const gql: string = '{ app { ping } }';
+
+    it('should set bearer token', (done) => {
+      fetchMock.postOnce(url, {
+        body: {},
+        sendAsJson: true,
+        status: 200
+      }, {overwriteRoutes: true});
+
+      Hunter.getGraph(url, gql, {token: 'test'})
+        .then(() => {
+          const call = fetchMock.lastCall();
+          const auth: string = call[1].headers.get('Authorization');
+          expect(auth).toEqual('Bearer test');
+          done();
+        })
+        .catch((error: ApiError) => {
+          expect(error).toEqual(false);
+          done();
+        });
+    });
+
+    it('should get default content type', (done) => {
+      fetchMock.postOnce(url, {
+        body: 'test',
+        headers: new Headers({'Content-Type': 'text/plain'}),
+        sendAsJson: false,
+        status: 200
+      }, {overwriteRoutes: true});
+
+      Hunter.getGraph(url, gql, {})
+        .then((response) => {
+          expect(response).toEqual(false);
+          done();
+        })
+        .catch((error: ApiError) => {
+          expect(error.errors[0]).toEqual('api_error');
+          done();
+        });
+    });
+
+    it('should catch graphql errors', (done) => {
+      const errors: Error[] = [{message: 'Must provide query string.', name: 'Test Error'}];
+
+      fetchMock.postOnce(url, {
+        body: {errors},
+        headers: new Headers({'Content-Type': 'application/json'}),
+        sendAsJson: true,
+        status: 200
+      }, {overwriteRoutes: true});
+
+      Hunter.getGraph(url, gql, {})
+        .then((response) => {
+          expect(response).toEqual(false);
+          done();
+        })
+        .catch((error: ApiError) => {
+          expect(error.errors[0]).toEqual('required_query');
+          done();
+        });
+    });
+
+    it('should catch network errors', (done) => {
+      fetchMock.postOnce(url, {
+        body: null,
+        headers: new Headers({'Content-Type': 'application/json'}),
+        sendAsJson: true,
+        status: 200
+      }, {overwriteRoutes: true});
+
+      Hunter.getGraph(url, gql, {})
+        .then((response) => {
+          expect(response).toEqual(false);
+          done();
+        })
+        .catch((error: ApiError) => {
+          expect(error.errors[0]).toEqual('api_error');
+          done();
+        });
+    });
+
+    // it.only('should catch relative url errors', (done) => {
+    //   fetchMock.postOnce('./test', {
+    //     body: new Error('only absolute urls are supported'),
+    //     headers: new Headers({'Content-Type': 'application/json'}),
+    //     sendAsJson: true,
+    //     status: 500
+    //   }, {overwriteRoutes: true});
+
+    //   Hunter.getGraph('./test', gql, {})
+    //     .then((response) => {
+    //       console.log('response', response);
+    //       expect(response).toEqual(false);
+    //       done();
+    //     })
+    //     .catch((error: ApiError) => {
+    //       console.log('error', error);
+    //       expect(error.errors[0]).toEqual('invalid_url');
+    //       done();
+    //     });
+    // });
+
+    //   it('should catch errors', (done) => {
+    //     fetchMock.postOnce('./test', {
+    //       body: {},
+    //       headers: new Headers({'Content-Type': 'application/json'}),
+    //       sendAsJson: true,
+    //       status: 200
+    //     }, {overwriteRoutes: true});
+
+    //     Hunter.getGraph(url, gql, {})
+    //       .then((response) => {
+    //         expect(response).toEqual(false);
+    //         done();
+    //       })
+    //       .catch((error: ApiError) => {
+    //         expect(error.errors[0]).toEqual('network_error');
+    //         done();
+    //       });
+    //   });
+  });
+
+  describe('.removeSpaces', () => {
     it('should remove extra spacing except within quotes', () => {
       const str: string = 'test{ method: {id: "hello world"}';
-      expect(Hunter.removeSpaces(str)).toBe('test{method:{id:"hello world"}');
+      expect(Hunter.removeSpaces(str)).toEqual('test{method:{id:"hello world"}');
     });
   });
 });

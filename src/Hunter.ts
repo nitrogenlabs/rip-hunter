@@ -1,4 +1,7 @@
-import * as Immutable from 'immutable';
+/**
+ * Copyright (c) 2017-Present, Nitrogen Labs, Inc.
+ * Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms.
+ */
 import isArray from 'lodash/isArray';
 import isNull from 'lodash/isNull';
 import isPlainObject from 'lodash/isPlainObject';
@@ -12,14 +15,8 @@ if(typeof window === 'undefined') {
   require('fetch-everywhere');
 }
 
-/**
- * Copyright (c) 2017-Present, Nitrogen Labs, Inc.
- * Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms.
- */
-
 export interface HunterOptionsType {
   readonly headers?: Headers;
-  readonly isImmutable?: boolean;
   readonly token?: string;
 }
 
@@ -46,7 +43,6 @@ export class Hunter {
 
   static ajax(url: string, method: string, params?, options: HunterOptionsType = {}): Promise<any> {
     const {headers, token} = options;
-    const {isImmutable} = options;
 
     let formatUrl: string = (url || '').trim();
     const formatToken: string = (token || '').trim();
@@ -90,7 +86,7 @@ export class Hunter {
       })
       .then((results) => {
         if(isResponseJSON) {
-          return isImmutable ? Immutable.fromJS(results) : results;
+          return results;
         }
 
         return results;
@@ -112,9 +108,7 @@ export class Hunter {
 
   // GraphQL
   static toGQL(obj): string {
-    if(Immutable.Iterable.isIterable(obj)) {
-      return Hunter.toGQL(obj.toJS());
-    } else if(isString(obj)) {
+    if(isString(obj)) {
       return JSON.stringify(obj);
     } else if(isPlainObject(obj)) {
       let cleanObj = omit(obj, isUndefined);
@@ -164,7 +158,6 @@ export class Hunter {
   }
 
   static getGraph(url: string, body?, options: HunterOptionsType = {}): Promise<any> {
-    const {isImmutable} = options;
     const {headers, token} = options;
     const formatUrl: string = url ? url.trim() : '';
     const formatToken: string = (token || '').trim();
@@ -179,11 +172,11 @@ export class Hunter {
         const regex: RegExp = /application\/json/i;
         const isJSON: boolean = regex.test(response.headers.get('Content-Type') || '');
 
-        if(isJSON) {
+        if(isJSON && response.body) {
           return response.json();
         }
 
-        return {data: {}};
+        return null; // {data: {}};
       })
       .catch((error) => {
         if((error || {}).message === 'only absolute urls are supported') {
@@ -193,19 +186,21 @@ export class Hunter {
         return Promise.reject(new ApiError([{message: 'network_error'}], error));
       })
       .then((json) => {
-        let updatedJson = json;
-        if(!updatedJson || updatedJson.errors) {
-          if(!updatedJson) {
-            updatedJson = {errors: [{message: 'api_error'}]};
+        let updatedJson: any = {};
+
+        if(!json || json.errors) {
+          if(!json) {
+            return Promise.reject(new ApiError([{message: 'api_error'}], new Error()));
           } else if((json.errors || []).some((error) => error.message === 'Must provide query string.')) {
             return Promise.reject(new ApiError([{message: 'required_query'}], new Error()));
           }
 
-          return Promise.reject(new ApiError(json.errors, new Error()));
+          return json.errors ? Promise.reject(new ApiError(json.errors, new Error())) : updatedJson;
+        } else if(json) {
+          updatedJson = {...json};
         }
 
-        const results = json.data || {};
-        return isImmutable ? Immutable.fromJS(results) : results;
+        return updatedJson.data || {};
       })
       .catch((error: ApiError) => {
         let updatedError = error;
