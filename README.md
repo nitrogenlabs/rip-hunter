@@ -1,8 +1,8 @@
-![RipHunter](https://nitrogenlabs.com/logos/gh-rip-hunter.png "RipHunter")
+![rip-hunter](https://nitrogenlabs.com/logos/gh-rip-hunter.png "rip-hunter")
 
 #### JS utilities for GraphQL
 
-RipHunter is a small utility to parse objects formatted for GraphQL requests as well as use fetch to send query and 
+rip-hunter is a small utility to parse objects formatted for GraphQL requests as well as use fetch to send query and
 mutation requests, returning a promise. Some helpers include sending an authorization token as well as custom headers.
 
 [![npm version](https://img.shields.io/npm/v/rip-hunter.svg?style=flat-square)](https://www.npmjs.com/package/rip-hunter)
@@ -15,29 +15,29 @@ mutation requests, returning a promise. Some helpers include sending an authoriz
 
 Using [npm](https://www.npmjs.com/):
 
-    $ npm install rip-hunter
+    $ npm install @nlabs/rip-hunter
 
 ###App Usage
 Then with a module bundler like [webpack](https://webpack.github.io/) that supports either CommonJS or ES2015 modules, use as you would anything else:
 
 ```js
-import {Hunter} from 'rip-hunter';
+import {query} from '@nlabs/rip-hunter';
 ```
 
 ### How to use
 
 **Example:**
 ```js
-import {Hunter} from 'rip-hunter';
+import {mutation, query, toGQL} from '@nlabs/rip-hunter';
 
 const AppActions = {
   getData: () => {
     // Variables
     const url = 'http://www.example.com/graphql';
     const gql = '{ app { ping } }';
-    
+
     // Query data
-    return Hunter.query(url, gql)
+    return query(url, gql)
       .then(results => {
         console.log(results);
         // Assuming the results will return the JSON object, {status: 'ok'}
@@ -52,10 +52,10 @@ const AppActions = {
     // Variables
     const url = 'http://www.example.com/graphql';
     const data = {hello: 'world'};
-    const gql = `{ user { update(data: ${Hunter.toGQL(data)}) } }`;
-    
+    const gql = `{ user { update(data: ${toGQL(data)}) } }`;
+
     // Mutate data
-    return Hunter.mutation(url, gql)
+    return mutation(url, gql)
       .then(results => {
         console.log(results);
         // Assuming the results will return the JSON object, {id: 'test', hello: 'world'}
@@ -100,12 +100,12 @@ Removes an event listener.
 AJAX request.
 * [`url`] \(*String*): URL to send the request. Must be an absolute url.
 * [`method`] \(*String*): The HTTP method for the request.
-* [`params`] \(*Object*): Data to be sent with the request. Params will be converted to a query string for GET methods. 
+* [`params`] \(*Object*): Data to be sent with the request. Params will be converted to a query string for GET methods.
 * [`options`] \(*Object*): Rip Hunter options.
   * [`headers`] \(*Object*): Overwrite the default headers.
   * [`immutable`] \(*Boolean*): Converts result to an Immutable object if set to true. Default: false.
   * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
-    
+
 ##### Returns
 A promise with either the response data or ApiError.
 
@@ -117,7 +117,7 @@ Server request using HTTP GET.
   * [`headers`] \(*Object*): Overwrite the default headers.
   * [`immutable`] \(*Boolean*): Converts result to an Immutable object if set to true. Default: false.
   * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
-    
+
 ##### Returns
 A promise with either the response data or ApiError.
 
@@ -129,7 +129,7 @@ Server request using HTTP POST.
   * [`headers`] \(*Object*): Overwrite the default headers.
   * [`immutable`] \(*Boolean*): Converts result to an Immutable object if set to true. Default: false.
   * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
-    
+
 ##### Returns
 A promise with either the response data or ApiError.
 
@@ -141,7 +141,7 @@ Server request using HTTP PUT.
   * [`headers`] \(*Object*): Overwrite the default headers.
   * [`immutable`] \(*Boolean*): Converts result to an Immutable object if set to true. Default: false.
   * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
-    
+
 ##### Returns
 A promise with either the response data or ApiError.
 
@@ -153,7 +153,7 @@ Server request using HTTP DEL.
   * [`headers`] \(*Object*): Overwrite the default headers.
   * [`immutable`] \(*Boolean*): Converts result to an Immutable object if set to true. Default: false.
   * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
-    
+
 ##### Returns
 A promise with either the response data or ApiError.
 
@@ -167,7 +167,7 @@ Queries a GraphQL server.
   * [`headers`] \(*Object*): Overwrite the default headers.
   * [`immutable`] \(*Boolean*): Converts result to an Immutable object if set to true. Default: false.
   * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
-    
+
 ##### Returns
 A promise with either the response data or ApiError.
 

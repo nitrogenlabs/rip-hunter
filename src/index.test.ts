@@ -1,34 +1,34 @@
 import {FetchMock} from '@nlabs/fetch-mock';
 
+import {ajax, getGraph, mutation, query, removeSpaces, toGQL} from '.';
 import {ApiError} from './errors/ApiError';
-import {Hunter} from './Hunter';
 
-describe('Hunter', () => {
+describe('rip-hunter', () => {
   const fetchMock = new FetchMock();
   const url = 'http://www.test.com/graphql';
 
   describe('#toGQL', () => {
     it('should convert a string to GQL', () => {
       const str: string = 'test';
-      const gql: string = Hunter.toGQL(str);
+      const gql: string = toGQL(str);
       return expect('"test"').toEqual(gql);
     });
 
     it('should convert a number to GQL', () => {
       const num: number = 123;
-      const gql: string = Hunter.toGQL(num);
+      const gql: string = toGQL(num);
       return expect(123).toEqual(gql);
     });
 
     it('should convert a JSON object to GQL', () => {
       const obj: object = {prop: 'test'};
-      const gql: string = Hunter.toGQL(obj);
+      const gql: string = toGQL(obj);
       return expect('{prop: "test"}').toEqual(gql);
     });
 
     it('should convert an array to GQL', () => {
       const array: object[] = [{prop: 'test'}];
-      const gql: string = Hunter.toGQL(array);
+      const gql: string = toGQL(array);
       return expect('[{prop: "test"}]').toEqual(gql);
     });
   });
@@ -46,7 +46,7 @@ describe('Hunter', () => {
         status: 200
       });
 
-      Hunter.query(url, gql)
+      query(url, gql)
         .then((results) => {
           expect(results.hello).toEqual('world');
           done();
@@ -63,7 +63,7 @@ describe('Hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      Hunter.query(url, gql, {token})
+      query(url, gql, {token})
         .then(() => {
           const opts = fetchMock.lastOptions();
           expect(opts.headers.get('Authorization')).toEqual(`Bearer ${token}`);
@@ -80,7 +80,7 @@ describe('Hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      Hunter.query(url, gql)
+      query(url, gql)
         .then(() => {
           expect(false).toEqual(true);
           done();
@@ -105,7 +105,7 @@ describe('Hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      Hunter.mutation(url, gql)
+      mutation(url, gql)
         .then((results) => {
           expect(results.hello).toEqual('world');
           done();
@@ -122,7 +122,7 @@ describe('Hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      Hunter.mutation(url, gql, {token})
+      mutation(url, gql, {token})
         .then(() => {
           const opts = fetchMock.lastOptions();
           expect(opts.headers.get('Authorization')).toEqual(`Bearer ${token}`);
@@ -139,7 +139,7 @@ describe('Hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      Hunter.mutation(url, gql)
+      mutation(url, gql)
         .then(() => {
           expect(false).toEqual(true);
           done();
@@ -162,7 +162,7 @@ describe('Hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      Hunter.ajax(url, 'post', gql)
+      ajax(url, 'post', gql)
         .then((response) => {
           console.log('response', response);
           expect(response.test).toEqual('demo');
@@ -185,7 +185,7 @@ describe('Hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      Hunter.getGraph(url, gql, {token: 'test'})
+      getGraph(url, gql, {token: 'test'})
         .then(() => {
           const call = fetchMock.lastCall();
           const auth: string = call[1].headers.get('Authorization');
@@ -206,7 +206,7 @@ describe('Hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      Hunter.getGraph(url, gql, {})
+      getGraph(url, gql, {})
         .then((response) => {
           expect(response).toEqual(false);
           done();
@@ -227,7 +227,7 @@ describe('Hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      Hunter.getGraph(url, gql, {})
+      getGraph(url, gql, {})
         .then((response) => {
           expect(response).toEqual(false);
           done();
@@ -246,7 +246,7 @@ describe('Hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      Hunter.getGraph(url, gql, {})
+      getGraph(url, gql, {})
         .then((response) => {
           expect(response).toEqual(false);
           done();
@@ -265,7 +265,7 @@ describe('Hunter', () => {
     //     status: 500
     //   }, {overwriteRoutes: true});
 
-    //   Hunter.getGraph('./test', gql, {})
+    //   getGraph('./test', gql, {})
     //     .then((response) => {
     //       console.log('response', response);
     //       expect(response).toEqual(false);
@@ -286,7 +286,7 @@ describe('Hunter', () => {
     //       status: 200
     //     }, {overwriteRoutes: true});
 
-    //     Hunter.getGraph(url, gql, {})
+    //     getGraph(url, gql, {})
     //       .then((response) => {
     //         expect(response).toEqual(false);
     //         done();
@@ -301,7 +301,7 @@ describe('Hunter', () => {
   describe('.removeSpaces', () => {
     it('should remove extra spacing except within quotes', () => {
       const str: string = 'test{ method: {id: "hello world"}';
-      expect(Hunter.removeSpaces(str)).toEqual('test{method:{id:"hello world"}');
+      expect(removeSpaces(str)).toEqual('test{method:{id:"hello world"}');
     });
   });
 });
