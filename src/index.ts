@@ -10,14 +10,10 @@ import isUndefined from 'lodash/isUndefined';
 import omit from 'lodash/omit';
 
 import {ApiError} from './errors/ApiError';
+import {HunterOptionsType} from './types';
 
 if(typeof window === 'undefined') {
   require('fetch-everywhere');
-}
-
-export interface HunterOptionsType {
-  readonly headers?: Headers;
-  readonly token?: string;
 }
 
 /**

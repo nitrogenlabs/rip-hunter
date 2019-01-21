@@ -4,6 +4,7 @@
   "description": "JS utilities for AJAX and GraphQL",
   "license": "MIT",
   "main": "index.js",
+  "types": "./lib/index.d.js",
   "keywords": [
     "ajax",
     "api",
@@ -29,11 +30,11 @@
     "url": "https://github.com/nitrogenlabs/rip-hunter/issues"
   },
   "scripts": {
-    "build": "lex compile -t",
+    "build": "lex compile -r",
     "clean": "lex clean",
     "lint": "eslint ./src --ext .js,.jsx,.ts,.tsx",
     "prepublishOnly": "yarn lint && yarn test && yarn build",
-    "test": "lex test -t",
+    "test": "lex test",
     "update": "lex update -i"
   },
   "dependencies": {

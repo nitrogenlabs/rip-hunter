@@ -21,6 +21,4 @@ coverage
 node_modules
 
 # App
-/dist
-
-
+/lib
