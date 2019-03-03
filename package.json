@@ -1,6 +1,6 @@
 {
   "name": "@nlabs/rip-hunter",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "JS utilities for AJAX and GraphQL",
   "license": "MIT",
   "main": "index.js",
@@ -33,7 +33,7 @@
     "build": "lex compile -r",
     "clean": "lex clean",
     "lint": "eslint ./src --ext .js,.jsx,.ts,.tsx",
-    "prepublishOnly": "yarn lint && yarn test && yarn build",
+    "prepublishOnly": "npm run lint && npm run test && npm run build",
     "test": "lex test",
     "update": "lex update -i"
   },
