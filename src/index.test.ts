@@ -151,7 +151,7 @@ describe('rip-hunter', () => {
     });
   });
 
-  describe.only('.ajax', () => {
+  describe('.ajax', () => {
     const gql: string = '{ app { ping } }';
 
     it('should be able to post', (done) => {

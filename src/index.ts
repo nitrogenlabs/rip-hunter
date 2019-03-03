@@ -132,11 +132,11 @@ export const toGQL = (obj: any): string => {
   return obj;
 };
 
-export const getGraph = (url: string, body?, options: HunterOptionsType = {}): Promise<any> => {
+export const getGraph = (url: string, body?: any, options: HunterOptionsType = {}): Promise<any> => {
   const {headers, token} = options;
   const formatUrl: string = url ? url.trim() : '';
   const formatToken: string = (token || '').trim();
-  const formatHeaders: Headers = headers || new Headers({'Content-Type': 'application/graphql'});
+  const formatHeaders: Headers = headers || new Headers({'Content-Type': 'application/json'});
 
   if(formatToken !== '') {
     formatHeaders.set('Authorization', `Bearer ${formatToken}`);
@@ -188,14 +188,14 @@ export const getGraph = (url: string, body?, options: HunterOptionsType = {}): P
     });
 };
 
-export const query = (url: string, body?, options?: HunterOptionsType): Promise<any> => {
+export const query = (url: string, body?: string, options?: HunterOptionsType): Promise<any> => {
   const formatBody: string = `query ${body}`;
-  return getGraph(url, formatBody, options);
+  return getGraph(url, JSON.stringify({query: formatBody}), options);
 };
 
-export const mutation = (url: string, body?, options?: HunterOptionsType): Promise<any> => {
+export const mutation = (url: string, body?: string, options?: HunterOptionsType): Promise<any> => {
   const formatBody: string = `mutation ${body}`;
-  return getGraph(url, formatBody, options);
+  return getGraph(url, JSON.stringify({query: formatBody}), options);
 };
 
 export const removeSpaces = (str: string): string => str.replace(/\s+(?=(?:[^'"]*['"][^'"]*['"])*[^'"]*$)/gm, '');

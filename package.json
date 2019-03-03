@@ -45,10 +45,10 @@
     "lodash": "~4.17.11"
   },
   "devDependencies": {
-    "@types/jest": "~23.3.13",
-    "@types/node": "~10.12.18",
-    "eslint": "~5.12.1",
+    "@types/jest": "^24.0.9",
+    "@types/node": "^11.10.4",
+    "eslint": "^5.15.0",
     "eslint-config-styleguidejs": "~1.0.1",
-    "typescript": "~3.2.4"
+    "typescript": "^3.3.3333"
   }
 }
