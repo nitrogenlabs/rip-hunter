@@ -1,34 +1,34 @@
 import {FetchMock} from '@nlabs/fetch-mock';
 
-import {ajax, getGraph, mutation, query, removeSpaces, toGQL} from '.';
+import {ajax, getGraph, mutation, query, removeSpaces, toGql} from '.';
 import {ApiError} from './errors/ApiError';
 
 describe('rip-hunter', () => {
   const fetchMock = new FetchMock();
   const url = 'http://www.test.com/graphql';
 
-  describe('#toGQL', () => {
+  describe('#toGql', () => {
     it('should convert a string to GQL', () => {
       const str: string = 'test';
-      const gql: string = toGQL(str);
+      const gql: string = toGql(str);
       return expect('"test"').toEqual(gql);
     });
 
     it('should convert a number to GQL', () => {
       const num: number = 123;
-      const gql: string = toGQL(num);
+      const gql: string = toGql(num);
       return expect(123).toEqual(gql);
     });
 
     it('should convert a JSON object to GQL', () => {
       const obj: object = {prop: 'test'};
-      const gql: string = toGQL(obj);
+      const gql: string = toGql(obj);
       return expect('{prop: "test"}').toEqual(gql);
     });
 
     it('should convert an array to GQL', () => {
       const array: object[] = [{prop: 'test'}];
-      const gql: string = toGQL(array);
+      const gql: string = toGql(array);
       return expect('[{prop: "test"}]').toEqual(gql);
     });
   });

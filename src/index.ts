@@ -94,7 +94,7 @@ export const put = (url: string, params?, options?: HunterOptionsType): Promise<
 export const del = (url: string, params?, options?: HunterOptionsType): Promise<any> => ajax(url, 'DELETE', params, options);
 
 // GraphQL
-export const toGQL = (obj: any): string => {
+export const toGql = (obj: any): string => {
   if(isString(obj)) {
     return JSON.stringify(obj);
   } else if(isPlainObject(obj)) {
@@ -105,9 +105,9 @@ export const toGQL = (obj: any): string => {
       const item = obj[key];
 
       if(isPlainObject(item)) {
-        props.push(toGQL(item));
+        props.push(toGql(item));
       } else if(isArray(item)) {
-        const list = item.map((listItem) => toGQL(listItem));
+        const list = item.map((listItem) => toGql(listItem));
         props.push(`${key}: [${list.join(', ')}]`);
       } else {
         const val = JSON.stringify(item);
@@ -128,7 +128,7 @@ export const toGQL = (obj: any): string => {
 
     return `{${gqlProps.join(', ')}}`;
   } else if(isArray(obj)) {
-    return `[${obj.map((objItem) => toGQL(objItem)).toString()}]`;
+    return `[${obj.map((objItem) => toGql(objItem)).toString()}]`;
   }
 
   return obj;
