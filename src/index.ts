@@ -190,13 +190,13 @@ export const getGraph = (url: string, body?: any, options: HunterOptionsType = {
     });
 };
 
-export const query = (url: string, body?: string, options?: HunterOptionsType): Promise<any> => {
+export const query = (url: string, body?: string, options: HunterOptionsType = {}): Promise<any> => {
   const {stripWhitespace = false, variables = {}} = options;
   const formatBody: string = `query ${stripWhitespace ? removeSpaces(body) : body}`;
   return getGraph(url, JSON.stringify({query: formatBody, variables}), options);
 };
 
-export const mutation = (url: string, body?: string, options?: HunterOptionsType): Promise<any> => {
+export const mutation = (url: string, body?: string, options: HunterOptionsType = {}): Promise<any> => {
   const {stripWhitespace = false, variables = {}} = options;
   const formatBody: string = `mutation ${stripWhitespace ? removeSpaces(body) : body}`;
   return getGraph(url, JSON.stringify({query: formatBody, variables}), options);
