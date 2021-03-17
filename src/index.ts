@@ -1,7 +1,3 @@
-/**
- * Copyright (c) 2017-Present, Nitrogen Labs, Inc.
- * Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms.
- */
 import isArray from 'lodash/isArray';
 import isNull from 'lodash/isNull';
 import isPlainObject from 'lodash/isPlainObject';
@@ -12,6 +8,10 @@ import omit from 'lodash/omit';
 import {ApiError} from './errors/ApiError';
 import {HunterOptionsType} from './types';
 
+/**
+ * Copyright (c) 2017-Present, Nitrogen Labs, Inc.
+ * Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms.
+ */
 if(typeof window === 'undefined') {
   require('fetch-everywhere');
 }
@@ -19,6 +19,8 @@ if(typeof window === 'undefined') {
 /**
  * JS utilities for GraphQL
  */
+export const removeSpaces = (str: string): string => str.replace(/\s+(?=(?:[^'"]*['"][^'"]*['"])*[^'"]*$)/gm, '');
+
 export const queryString = (json: any): string => Object
   .keys(json)
   .map((key: string) => `${encodeURIComponent(key)}=${encodeURIComponent(json[key])}`).join('&');
@@ -189,15 +191,15 @@ export const getGraph = (url: string, body?: any, options: HunterOptionsType = {
 };
 
 export const query = (url: string, body?: string, options?: HunterOptionsType): Promise<any> => {
-  const formatBody: string = `query ${body}`;
-  return getGraph(url, JSON.stringify({query: formatBody}), options);
+  const {stripWhitespace = false, variables = {}} = options;
+  const formatBody: string = `query ${stripWhitespace ? removeSpaces(body) : body}`;
+  return getGraph(url, JSON.stringify({query: formatBody, variables}), options);
 };
 
 export const mutation = (url: string, body?: string, options?: HunterOptionsType): Promise<any> => {
-  const formatBody: string = `mutation ${body}`;
-  return getGraph(url, JSON.stringify({query: formatBody}), options);
+  const {stripWhitespace = false, variables = {}} = options;
+  const formatBody: string = `mutation ${stripWhitespace ? removeSpaces(body) : body}`;
+  return getGraph(url, JSON.stringify({query: formatBody, variables}), options);
 };
-
-export const removeSpaces = (str: string): string => str.replace(/\s+(?=(?:[^'"]*['"][^'"]*['"])*[^'"]*$)/gm, '');
 
 export {ApiError} from './errors/ApiError';
