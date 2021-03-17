@@ -54,23 +54,23 @@ export const ajax = (url: string, method: string, params?, options: HunterOption
     formatHeaders.set('Authorization', `Bearer ${formatToken}`);
   }
 
-  let isResponseJSON: boolean;
+  let isResponseJson: boolean;
 
   return fetch(formatUrl, {body: formatParams, headers: formatHeaders, method: formatMethod})
     .then((response: Response) => {
       const regex = /application\/json/i;
 
       // Check if response is json
-      isResponseJSON = regex.test(response.headers.get('Content-Type') || '');
+      isResponseJson = regex.test(response.headers.get('Content-Type') || '');
 
-      if(isResponseJSON) {
+      if(isResponseJson) {
         return response.json();
       }
 
       return response.text();
     })
     .then((results) => {
-      if(isResponseJSON) {
+      if(isResponseJson) {
         return results;
       }
 
@@ -147,9 +147,9 @@ export const getGraph = (url: string, body?: any, options: HunterOptionsType = {
   return fetch(formatUrl, {body, headers: formatHeaders, method: 'post'})
     .then((response: Response) => {
       const regex: RegExp = /application\/json/i;
-      const isJSON: boolean = regex.test(response.headers.get('Content-Type') || '');
+      const isJson: boolean = regex.test(response.headers.get('Content-Type') || '');
 
-      if(isJSON && response.body) {
+      if(isJson && response.body) {
         return response.json();
       }
 
