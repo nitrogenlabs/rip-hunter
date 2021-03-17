@@ -1,6 +1,6 @@
 import {FetchMock} from '@nlabs/fetch-mock';
 
-import {ajax, getGraph, mutation, query, removeSpaces, toGql} from '.';
+import {ajax, getGraph, mutation, query, removeSpaces, toGql} from '../src';
 import {ApiError} from './errors/ApiError';
 
 describe('rip-hunter', () => {

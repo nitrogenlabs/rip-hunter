@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2017-Present, Nitrogen Labs, Inc.
+ * Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms.
+ */
 import isArray from 'lodash/isArray';
 import isNull from 'lodash/isNull';
 import isPlainObject from 'lodash/isPlainObject';
@@ -6,14 +10,16 @@ import isUndefined from 'lodash/isUndefined';
 import omit from 'lodash/omit';
 
 import {ApiError} from './errors/ApiError';
-import {HunterOptionsType} from './types';
 
-/**
- * Copyright (c) 2017-Present, Nitrogen Labs, Inc.
- * Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms.
- */
 if(typeof window === 'undefined') {
   require('fetch-everywhere');
+}
+
+export interface HunterOptionsType {
+  readonly headers?: Headers;
+  readonly stripWhitespace?: boolean;
+  readonly token?: string;
+  readonly variables?: any;
 }
 
 /**
@@ -190,13 +196,13 @@ export const getGraph = (url: string, body?: any, options: HunterOptionsType = {
     });
 };
 
-export const query = (url: string, body?: string, options: HunterOptionsType = {}): Promise<any> => {
+export const query = (url: string, body: string = '', options: HunterOptionsType = {}): Promise<any> => {
   const {stripWhitespace = false, variables = {}} = options;
   const formatBody: string = `query ${stripWhitespace ? removeSpaces(body) : body}`;
   return getGraph(url, JSON.stringify({query: formatBody, variables}), options);
 };
 
-export const mutation = (url: string, body?: string, options: HunterOptionsType = {}): Promise<any> => {
+export const mutation = (url: string, body: string = '', options: HunterOptionsType = {}): Promise<any> => {
   const {stripWhitespace = false, variables = {}} = options;
   const formatBody: string = `mutation ${stripWhitespace ? removeSpaces(body) : body}`;
   return getGraph(url, JSON.stringify({query: formatBody, variables}), options);

@@ -3,8 +3,8 @@
   "version": "2.3.0",
   "description": "JS utilities for AJAX and GraphQL",
   "license": "MIT",
-  "main": "index.js",
-  "types": "./lib/index.d.js",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "keywords": [
     "ajax",
     "api",

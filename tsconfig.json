@@ -6,12 +6,13 @@
     "emitDeclarationOnly": true,
     "esModuleInterop": true,
     "inlineSourceMap": true,
-    "jsx": "react",
     "lib": [
+      "dom",
+      "es2015",
+      "es5",
       "es6",
       "es7",
-      "esnext",
-      "dom"
+      "esnext"
     ],
     "module": "commonjs",
     "moduleResolution": "node",
@@ -20,12 +21,16 @@
     "noStrictGenericChecks": true,
     "noUnusedLocals": true,
     "outDir": "./lib",
-    "pretty": true,
+    "removeComments": true,
     "skipLibCheck": true,
     "target": "ES5",
     "typeRoots": [
       "node_modules/@types",
       "node_modules/json-d-ts"
+    ],
+    "types": [
+      "jest",
+      "node"
     ]
   },
   "include": [
