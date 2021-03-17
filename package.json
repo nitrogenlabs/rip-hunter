@@ -32,8 +32,13 @@
   "scripts": {
     "build": "lex compile -r",
     "clean": "lex clean",
-    "lint": "eslint ./src --ext .js,.jsx,.ts,.tsx",
+    "lint": "eslint ./src --ext .ts,.tsx",
     "prepublishOnly": "npm run lint && npm run test && npm run build",
+    "pretest": "stage=test npm run lint",
+    "publish:major": "npm version major && npm run publish:tags && npm publish",
+    "publish:minor": "npm version minor && npm run publish:tags && npm publish",
+    "publish:patch": "npm version patch && npm run publish:tags && npm publish",
+    "publish:tags": "git push --tags && git push origin HEAD",
     "test": "lex test",
     "update": "lex update -i"
   },
