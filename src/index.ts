@@ -3,6 +3,7 @@
  * Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms.
  */
 import isArray from 'lodash/isArray';
+import isEmpty from 'lodash/isEmpty';
 import isNull from 'lodash/isNull';
 import isPlainObject from 'lodash/isPlainObject';
 import isString from 'lodash/isString';
@@ -17,8 +18,12 @@ if(typeof window === 'undefined') {
 
 export interface HunterOptionsType {
   readonly headers?: Headers;
-  readonly stripWhitespace?: boolean;
   readonly token?: string;
+  readonly variables?: any;
+}
+
+export interface HunterQueryType {
+  readonly query: string;
   readonly variables?: any;
 }
 
@@ -56,7 +61,7 @@ export const ajax = (url: string, method: string, params?, options: HunterOption
   }
 
   // Authentication token
-  if(formatToken !== '') {
+  if(!isEmpty(formatToken)) {
     formatHeaders.set('Authorization', `Bearer ${formatToken}`);
   }
 
@@ -140,7 +145,11 @@ export const toGql = (obj: any): string => {
   return obj;
 };
 
-export const getGraph = (url: string, body?: any, options: HunterOptionsType = {}): Promise<any> => {
+export const graphqlQuery = (
+  url: string,
+  query: HunterQueryType | HunterQueryType[],
+  options: HunterOptionsType = {}
+): Promise<any> => {
   const {headers, token} = options;
   const formatUrl: string = url ? url.trim() : '';
   const formatToken: string = (token || '').trim();
@@ -150,7 +159,7 @@ export const getGraph = (url: string, body?: any, options: HunterOptionsType = {
     formatHeaders.set('Authorization', `Bearer ${formatToken}`);
   }
 
-  return fetch(formatUrl, {body, headers: formatHeaders, method: 'post'})
+  return fetch(formatUrl, {body: JSON.stringify(query), headers: formatHeaders, method: 'post'})
     .then((response: Response) => {
       const regex: RegExp = /application\/json/i;
       const isJson: boolean = regex.test(response.headers.get('Content-Type') || '');
@@ -163,10 +172,10 @@ export const getGraph = (url: string, body?: any, options: HunterOptionsType = {
     })
     .catch((error) => {
       if((error || {}).message === 'only absolute urls are supported') {
-        return Promise.reject(new ApiError([{message: 'invalid_url'}], error));
+        throw new ApiError([{message: 'invalid_url'}], error);
       }
 
-      return Promise.reject(new ApiError([{message: 'network_error'}], error));
+      throw new ApiError([{message: 'network_error'}], error);
     })
     .then((json) => {
       let updatedJson: any = {};
@@ -194,18 +203,6 @@ export const getGraph = (url: string, body?: any, options: HunterOptionsType = {
 
       return Promise.reject(updatedError);
     });
-};
-
-export const query = (url: string, body: string = '', options: HunterOptionsType = {}): Promise<any> => {
-  const {stripWhitespace = false, variables = {}} = options;
-  const formatBody: string = `query ${stripWhitespace ? removeSpaces(body) : body}`;
-  return getGraph(url, JSON.stringify({query: formatBody, variables}), options);
-};
-
-export const mutation = (url: string, body: string = '', options: HunterOptionsType = {}): Promise<any> => {
-  const {stripWhitespace = false, variables = {}} = options;
-  const formatBody: string = `mutation ${stripWhitespace ? removeSpaces(body) : body}`;
-  return getGraph(url, JSON.stringify({query: formatBody, variables}), options);
 };
 
 export {ApiError} from './errors/ApiError';
