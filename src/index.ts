@@ -172,10 +172,10 @@ export const graphqlQuery = (
     })
     .catch((error) => {
       if((error || {}).message === 'only absolute urls are supported') {
-        throw new ApiError([{message: 'invalid_url'}], error);
+        return Promise.reject(new ApiError([{message: 'invalid_url'}], error));
       }
 
-      throw new ApiError([{message: 'network_error'}], error);
+      return Promise.reject(new ApiError([{message: 'network_error'}], error));
     })
     .then((json) => {
       let updatedJson: any = {};
