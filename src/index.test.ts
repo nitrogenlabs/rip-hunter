@@ -1,6 +1,6 @@
 import {FetchMock} from '@nlabs/fetch-mock';
 
-import {ajax, getGraph, mutation, query, removeSpaces, toGql} from '../src';
+import {ajax, graphqlQuery, removeSpaces, toGql} from '.';
 import {ApiError} from './errors/ApiError';
 
 describe('rip-hunter', () => {
@@ -33,8 +33,8 @@ describe('rip-hunter', () => {
     });
   });
 
-  describe('#query', () => {
-    const gql: string = '{ app { ping } }';
+  describe('#graphqlQuery', () => {
+    const query: string = 'query { app { ping } }';
     const data: object = {hello: 'world'};
     const errors: Error[] = [{message: 'test_error', name: 'Test Error'}];
 
@@ -46,7 +46,7 @@ describe('rip-hunter', () => {
         status: 200
       });
 
-      query(url, gql)
+      graphqlQuery(url, {query})
         .then((results) => {
           expect(results.hello).toEqual('world');
           done();
@@ -63,7 +63,7 @@ describe('rip-hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      query(url, gql, {token})
+      graphqlQuery(url, {query}, {token})
         .then(() => {
           const opts = fetchMock.lastOptions();
           expect(opts.headers.get('Authorization')).toEqual(`Bearer ${token}`);
@@ -80,7 +80,7 @@ describe('rip-hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      query(url, gql)
+      graphqlQuery(url, {query})
         .then(() => {
           expect(false).toEqual(true);
           done();
@@ -92,8 +92,8 @@ describe('rip-hunter', () => {
     });
   });
 
-  describe('#mutation', () => {
-    const gql: string = '{ app { ping } }';
+  describe('#graphqlQuery mutation', () => {
+    const query: string = 'mutation { app { ping } }';
     const data: object = {hello: 'world'};
     const errors: Error[] = [{message: 'test_error', name: 'Test Error'}];
 
@@ -105,7 +105,7 @@ describe('rip-hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      mutation(url, gql)
+      graphqlQuery(url, {query})
         .then((results) => {
           expect(results.hello).toEqual('world');
           done();
@@ -122,7 +122,7 @@ describe('rip-hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      mutation(url, gql, {token})
+      graphqlQuery(url, {query}, {token})
         .then(() => {
           const opts = fetchMock.lastOptions();
           expect(opts.headers.get('Authorization')).toEqual(`Bearer ${token}`);
@@ -139,7 +139,7 @@ describe('rip-hunter', () => {
         status: 200
       }, {overwriteRoutes: true});
 
-      mutation(url, gql)
+      graphqlQuery(url, {query})
         .then(() => {
           expect(false).toEqual(true);
           done();
@@ -173,129 +173,6 @@ describe('rip-hunter', () => {
           done();
         });
     });
-  });
-
-  describe('.getGraph', () => {
-    const gql: string = '{ app { ping } }';
-
-    it('should set bearer token', (done) => {
-      fetchMock.postOnce(url, {
-        body: {},
-        sendAsJson: true,
-        status: 200
-      }, {overwriteRoutes: true});
-
-      getGraph(url, gql, {token: 'test'})
-        .then(() => {
-          const call = fetchMock.lastCall();
-          const auth: string = call[1].headers.get('Authorization');
-          expect(auth).toEqual('Bearer test');
-          done();
-        })
-        .catch((error: ApiError) => {
-          expect(error).toEqual(false);
-          done();
-        });
-    });
-
-    it('should get default content type', (done) => {
-      fetchMock.postOnce(url, {
-        body: 'test',
-        headers: new Headers({'Content-Type': 'text/plain'}),
-        sendAsJson: false,
-        status: 200
-      }, {overwriteRoutes: true});
-
-      getGraph(url, gql, {})
-        .then((response) => {
-          expect(response).toEqual(false);
-          done();
-        })
-        .catch((error: ApiError) => {
-          expect(error.errors[0]).toEqual('api_error');
-          done();
-        });
-    });
-
-    it('should catch graphql errors', (done) => {
-      const errors: Error[] = [{message: 'Must provide query string.', name: 'Test Error'}];
-
-      fetchMock.postOnce(url, {
-        body: {errors},
-        headers: new Headers({'Content-Type': 'application/json'}),
-        sendAsJson: true,
-        status: 200
-      }, {overwriteRoutes: true});
-
-      getGraph(url, gql, {})
-        .then((response) => {
-          expect(response).toEqual(false);
-          done();
-        })
-        .catch((error: ApiError) => {
-          expect(error.errors[0]).toEqual('required_query');
-          done();
-        });
-    });
-
-    it('should catch network errors', (done) => {
-      fetchMock.postOnce(url, {
-        body: null,
-        headers: new Headers({'Content-Type': 'application/json'}),
-        sendAsJson: true,
-        status: 200
-      }, {overwriteRoutes: true});
-
-      getGraph(url, gql, {})
-        .then((response) => {
-          expect(response).toEqual(false);
-          done();
-        })
-        .catch((error: ApiError) => {
-          expect(error.errors[0]).toEqual('api_error');
-          done();
-        });
-    });
-
-    // it.only('should catch relative url errors', (done) => {
-    //   fetchMock.postOnce('./test', {
-    //     body: new Error('only absolute urls are supported'),
-    //     headers: new Headers({'Content-Type': 'application/json'}),
-    //     sendAsJson: true,
-    //     status: 500
-    //   }, {overwriteRoutes: true});
-
-    //   getGraph('./test', gql, {})
-    //     .then((response) => {
-    //       console.log('response', response);
-    //       expect(response).toEqual(false);
-    //       done();
-    //     })
-    //     .catch((error: ApiError) => {
-    //       console.log('error', error);
-    //       expect(error.errors[0]).toEqual('invalid_url');
-    //       done();
-    //     });
-    // });
-
-    //   it('should catch errors', (done) => {
-    //     fetchMock.postOnce('./test', {
-    //       body: {},
-    //       headers: new Headers({'Content-Type': 'application/json'}),
-    //       sendAsJson: true,
-    //       status: 200
-    //     }, {overwriteRoutes: true});
-
-    //     getGraph(url, gql, {})
-    //       .then((response) => {
-    //         expect(response).toEqual(false);
-    //         done();
-    //       })
-    //       .catch((error: ApiError) => {
-    //         expect(error.errors[0]).toEqual('network_error');
-    //         done();
-    //       });
-    //   });
   });
 
   describe('.removeSpaces', () => {
