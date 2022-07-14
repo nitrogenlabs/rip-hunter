@@ -13,7 +13,7 @@ import omit from 'lodash/omit';
 import {ApiError} from './errors/ApiError';
 
 if(typeof window === 'undefined') {
-  require('fetch-everywhere');
+  require('cross-fetch/polyfill');
 }
 
 export interface HunterOptionsType {

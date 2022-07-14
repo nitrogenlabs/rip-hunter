@@ -164,7 +164,6 @@ describe('rip-hunter', () => {
 
       ajax(url, 'post', gql)
         .then((response) => {
-          console.log('response', response);
           expect(response.test).toEqual('demo');
           done();
         })

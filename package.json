@@ -45,15 +45,15 @@
     "watch": "lex compile -r -w"
   },
   "dependencies": {
-    "fetch-everywhere": "1.0.5",
+    "cross-fetch": "3.1.5",
     "lodash": "4.17.21"
   },
   "devDependencies": {
     "@nlabs/fetch-mock": "0.4.0",
-    "@types/jest": "26.0.22",
-    "@types/node": "14.14.41",
-    "eslint": "7.24.0",
-    "eslint-config-styleguidejs": "1.5.3",
-    "typescript": "4.2.4"
+    "@types/jest": "28.1.5",
+    "@types/node": "18.0.4",
+    "eslint": "8.19.0",
+    "eslint-config-styleguidejs": "3.0.0",
+    "typescript": "4.7.4"
   }
 }
