@@ -31,7 +31,7 @@
     "url": "https://github.com/nitrogenlabs/rip-hunter/issues"
   },
   "scripts": {
-    "build": "lex compile -r",
+    "build": "lex compile --remove",
     "clean": "lex clean",
     "lint": "eslint ./src --ext .ts,.tsx",
     "prepublishOnly": "npm run lint && npm run test && npm run build",
@@ -41,19 +41,19 @@
     "publish:patch": "npm version patch && npm run publish:tags && npm publish",
     "publish:tags": "git push --tags && git push origin HEAD",
     "test": "lex test",
-    "update": "lex update -i",
-    "watch": "lex compile -r -w"
+    "update": "lex update --interactive",
+    "watch": "lex compile --remove -watch"
   },
   "dependencies": {
-    "cross-fetch": "3.1.5",
+    "cross-fetch": "4.0.0",
     "lodash": "4.17.21"
   },
   "devDependencies": {
     "@nlabs/fetch-mock": "1.0.2",
-    "@types/jest": "29.5.0",
-    "@types/node": "18.15.7",
-    "eslint": "8.36.0",
+    "@types/jest": "29.5.11",
+    "@types/node": "20.11.8",
+    "eslint": "8.56.0",
     "eslint-config-styleguidejs": "3.2.1",
-    "typescript": "5.0.2"
+    "typescript": "5.3.3"
   }
 }
