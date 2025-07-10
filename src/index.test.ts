@@ -22,27 +22,22 @@ describe('rip-hunter', () => {
   const url = 'http://www.test.com/graphql';
 
   beforeEach(() => {
-    // Reset fetch-mock before each test
     fetchMock.reset();
     fetchMock.restore();
 
-    // Clear any global fetch overrides
     if(global.fetch && typeof global.fetch !== 'function') {
       delete (global as any).fetch;
     }
   });
 
   afterEach(() => {
-    // Clean up fetch-mock after each test
     fetchMock.reset();
     fetchMock.restore();
 
-    // Restore original fetch if it was overridden
     if(global.fetch && typeof global.fetch !== 'function') {
       delete (global as any).fetch;
     }
 
-    // Clear any timers that might be left hanging
     jest.clearAllTimers();
   });
 
@@ -324,7 +319,6 @@ describe('rip-hunter', () => {
     });
 
     it('should handle network errors', (done) => {
-      // Mock fetch to throw network error
       const originalFetch = global.fetch;
       global.fetch = () => Promise.reject(new Error('Network error'));
 
@@ -341,7 +335,6 @@ describe('rip-hunter', () => {
     });
 
     it('should handle invalid URL errors', (done) => {
-      // Mock fetch to throw error for invalid URL
       const originalFetch = global.fetch;
       global.fetch = () => Promise.reject(new Error('only absolute urls are supported'));
 
@@ -358,9 +351,8 @@ describe('rip-hunter', () => {
     });
 
     it('should handle timeout', (done) => {
-      // Mock fetch to never resolve (simulate timeout)
       const originalFetch = global.fetch;
-      global.fetch = () => new Promise<Response>(() => {}); // Never resolves
+      global.fetch = () => new Promise<Response>(() => {});
 
       ajax(url, 'POST', {data: 'test'}, {timeout: 1})
         .then(() => {
@@ -480,8 +472,6 @@ describe('rip-hunter', () => {
 
       ajax(url, 'GET', {param: 'value'}, {cache: true})
         .then(() => {
-          // Wait for cache cleanup (5 minutes in real code, but we can't wait that long)
-          // This test just ensures the cleanup setTimeout is called
           done();
         })
         .catch(done);
@@ -628,13 +618,11 @@ describe('rip-hunter', () => {
 
   describe('#graphqlQuery', () => {
     beforeEach(() => {
-      // Additional cleanup for GraphQL tests
       fetchMock.reset();
       fetchMock.restore();
     });
 
     afterEach(() => {
-      // Clean up after each GraphQL test
       fetchMock.reset();
       fetchMock.restore();
     });
@@ -695,7 +683,6 @@ describe('rip-hunter', () => {
     });
 
     it('should handle network errors', (done) => {
-      // Mock fetch to throw network error
       const originalFetch = global.fetch;
       global.fetch = () => Promise.reject(new Error('Network error'));
 
@@ -712,7 +699,6 @@ describe('rip-hunter', () => {
     });
 
     it('should handle invalid URL', (done) => {
-      // Mock fetch to throw error for invalid URL
       const originalFetch = global.fetch;
       global.fetch = () => Promise.reject(new Error('only absolute urls are supported'));
 
@@ -729,9 +715,8 @@ describe('rip-hunter', () => {
     });
 
     it('should handle timeout', (done) => {
-      // Mock fetch to never resolve (simulate timeout)
       const originalFetch = global.fetch;
-      global.fetch = () => new Promise<Response>(() => {}); // Never resolves
+      global.fetch = () => new Promise<Response>(() => {});
 
       graphqlQuery(url, {query}, {timeout: 1})
         .then(() => {
@@ -744,7 +729,6 @@ describe('rip-hunter', () => {
           done();
         });
     });
-
 
     it('should handle no timeout', (done) => {
       fetchMock.postOnce(url, {
@@ -788,7 +772,6 @@ describe('rip-hunter', () => {
         status: 200
       });
 
-      // Test the actual graphqlQuery function
       graphqlQuery('https://test.com/graphql', {query: 'test'})
         .then((results) => {
           console.log('GraphQL results:', results);
@@ -805,13 +788,11 @@ describe('rip-hunter', () => {
 
   describe('#query', () => {
     beforeEach(() => {
-      // Additional cleanup for query tests
       fetchMock.reset();
       fetchMock.restore();
     });
 
     afterEach(() => {
-      // Clean up after each query test
       fetchMock.reset();
       fetchMock.restore();
     });
@@ -838,13 +819,11 @@ describe('rip-hunter', () => {
 
   describe('#mutation', () => {
     beforeEach(() => {
-      // Additional cleanup for mutation tests
       fetchMock.reset();
       fetchMock.restore();
     });
 
     afterEach(() => {
-      // Clean up after each mutation test
       fetchMock.reset();
       fetchMock.restore();
     });
@@ -871,7 +850,6 @@ describe('rip-hunter', () => {
 
   describe('#subscribeSSE', () => {
     beforeEach(() => {
-      // Mock EventSource
       global.EventSource = function(url: string) {
         return {
           close() {},
@@ -907,7 +885,6 @@ describe('rip-hunter', () => {
         token
       });
 
-      // Test passes if no error is thrown
       expect(true).toBe(true);
     });
 
@@ -921,7 +898,6 @@ describe('rip-hunter', () => {
         headers
       });
 
-      // Test passes if no error is thrown
       expect(true).toBe(true);
     });
 
@@ -934,7 +910,6 @@ describe('rip-hunter', () => {
         timeout: 1000
       });
 
-      // Test passes if no error is thrown
       expect(true).toBe(true);
     });
 
@@ -944,7 +919,7 @@ describe('rip-hunter', () => {
         onerror: null as any,
         onmessage: null as any,
         onopen: null as any,
-        readyState: 2 // CLOSED
+        readyState: 2
       };
 
       global.EventSource = function(url: string) {
@@ -962,12 +937,10 @@ describe('rip-hunter', () => {
         retryInterval: 100
       });
 
-      // Test passes if no error is thrown
       expect(true).toBe(true);
     });
 
     it('should handle EventSource creation error', () => {
-      // Mock EventSource to throw error
       global.EventSource = function(url: string) {
         throw new Error('EventSource not available');
       } as any;
@@ -978,7 +951,6 @@ describe('rip-hunter', () => {
         onError
       });
 
-      // Test passes if no error is thrown
       expect(true).toBe(true);
     });
 
@@ -989,7 +961,6 @@ describe('rip-hunter', () => {
         onMessage
       });
 
-      // Test passes if no error is thrown
       expect(true).toBe(true);
     });
 
@@ -1000,7 +971,6 @@ describe('rip-hunter', () => {
         onMessage
       });
 
-      // Test that cleanup function works
       expect(typeof unsubscribe).toBe('function');
       unsubscribe();
       expect(true).toBe(true);
@@ -1012,7 +982,7 @@ describe('rip-hunter', () => {
         onerror: null as any,
         onmessage: null as any,
         onopen: null as any,
-        readyState: 2 // CLOSED
+        readyState: 2
       };
 
       global.EventSource = function(url: string) {
@@ -1026,11 +996,10 @@ describe('rip-hunter', () => {
         onError,
         onRetry
       }, {
-        maxRetries: 0, // No retries
+        maxRetries: 0,
         retryInterval: 100
       });
 
-      // Test passes if no error is thrown
       expect(true).toBe(true);
     });
 
@@ -1043,7 +1012,6 @@ describe('rip-hunter', () => {
         timeout: 1000
       });
 
-      // Test cleanup with timeout
       unsubscribe();
       expect(true).toBe(true);
     });
@@ -1070,7 +1038,6 @@ describe('rip-hunter', () => {
         onMessage
       });
 
-      // Simulate message event with retry data
       if(mockEventSource.onmessage) {
         mockEventSource.onmessage({
           data: 'retry: 5000',
@@ -1104,7 +1071,6 @@ describe('rip-hunter', () => {
         onMessage
       });
 
-      // Simulate message event without retry data
       if(mockEventSource.onmessage) {
         mockEventSource.onmessage({
           data: 'test message',
@@ -1139,7 +1105,6 @@ describe('rip-hunter', () => {
         timeout: 1000
       });
 
-      // Simulate open event
       if(mockEventSource.onopen) {
         mockEventSource.onopen({});
       }
@@ -1153,7 +1118,7 @@ describe('rip-hunter', () => {
         onerror: null as any,
         onmessage: null as any,
         onopen: null as any,
-        readyState: 1 // OPEN
+        readyState: 1
       };
 
       global.EventSource = function(url: string) {
@@ -1168,7 +1133,6 @@ describe('rip-hunter', () => {
         onError
       });
 
-      // Simulate error event
       if(mockEventSource.onerror) {
         mockEventSource.onerror({});
       }
@@ -1182,7 +1146,7 @@ describe('rip-hunter', () => {
         onerror: null as any,
         onmessage: null as any,
         onopen: null as any,
-        readyState: 2 // CLOSED
+        readyState: 2
       };
 
       global.EventSource = function(url: string) {
@@ -1206,7 +1170,6 @@ describe('rip-hunter', () => {
         retryInterval: 1000
       });
 
-      // Simulate error event
       if(mockEventSource.onerror) {
         mockEventSource.onerror({});
       }
@@ -1220,7 +1183,7 @@ describe('rip-hunter', () => {
         onerror: null as any,
         onmessage: null as any,
         onopen: null as any,
-        readyState: 2 // CLOSED
+        readyState: 2
       };
 
       global.EventSource = function(url: string) {
@@ -1234,10 +1197,9 @@ describe('rip-hunter', () => {
       subscribeSSE('https://api.example.com/stream', {
         onError
       }, {
-        maxRetries: 0 // No retries
+        maxRetries: 0
       });
 
-      // Simulate error event
       if(mockEventSource.onerror) {
         mockEventSource.onerror({});
       }
@@ -1246,7 +1208,6 @@ describe('rip-hunter', () => {
     });
 
     it('should handle EventSource creation error with non-Error object', () => {
-      // Mock EventSource to throw non-Error
       global.EventSource = function(url: string) {
         throw 'Some string error';
       } as any;
@@ -1259,7 +1220,6 @@ describe('rip-hunter', () => {
         onError
       });
 
-      // Test passes if no error is thrown
       expect(true).toBe(true);
     });
 
@@ -1283,10 +1243,9 @@ describe('rip-hunter', () => {
       subscribeSSE('https://api.example.com/stream', {
         onError
       }, {
-        timeout: 1 // Very short timeout
+        timeout: 1
       });
 
-      // Wait a bit for timeout to trigger
       setTimeout(() => {
         expect(true).toBe(true);
       }, 10);
