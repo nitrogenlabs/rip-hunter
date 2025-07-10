@@ -1,211 +1,257 @@
-![rip-hunter](https://nitrogenlabs.com/logos/gh-rip-hunter.png "rip-hunter")
+# rip-hunter
 
-#### JS utilities for GraphQL
+**Universal REST & GraphQL Client for Modern JavaScript/TypeScript Projects**
 
-rip-hunter is a small utility to parse objects formatted for GraphQL requests as well as use fetch to send query and
-mutation requests, returning a promise. Some helpers include sending an authorization token as well as custom headers.
+---
+
+**rip-hunter** is the all-in-one HTTP utility for developers who want a seamless, ESM-first way to connect to REST and GraphQL APIs. Whether you're building in Node.js, the browser, or serverless, rip-hunter makes data fetching, mutations, and error handling effortless—so you can focus on building features, not plumbing.
 
 [![npm version](https://img.shields.io/npm/v/rip-hunter.svg?style=flat-square)](https://www.npmjs.com/package/rip-hunter)
-[![Travis](https://img.shields.io/travis/nitrogenlabs/rip-hunter.svg?style=flat-square)](https://travis-ci.org/nitrogenlabs/rip-hunter)
 [![npm downloads](https://img.shields.io/npm/dm/rip-hunter.svg?style=flat-square)](https://www.npmjs.com/package/rip-hunter)
-[![Issues](http://img.shields.io/github/issues/nitrogenlabs/rip-hunter.svg?style=flat-square)](https://github.com/nitrogenlabs/rip-hunter/issues)
 [![MIT license](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](http://opensource.org/licenses/MIT)
 
-### Installation
+---
 
-Using [npm](https://www.npmjs.com/):
+## 🚀 Why rip-hunter?
 
-    $ npm install @nlabs/rip-hunter
+- **Unified API**: One package for both REST and GraphQL endpoints
+- **ESM & TypeScript Native**: Modern, type-safe, and tree-shakable
+- **Works Everywhere**: Node, browser, serverless—no config needed
+- **Built-in Auth & Headers**: Effortlessly add tokens and custom headers
+- **Automatic Error Handling**: Consistent, developer-friendly errors
+- **Tiny & Fast**: Minimal dependencies, zero bloat
+- **Request Caching**: Built-in caching for GET requests
+- **Timeout Support**: Configurable request timeouts
+- **Request Deduplication**: Prevents duplicate requests
 
-###App Usage
-Then with a module bundler like [webpack](https://webpack.github.io/) that supports either CommonJS or ES2015 modules, use as you would anything else:
+---
 
-```js
-import {query} from '@nlabs/rip-hunter';
+## 📦 Installation
+
+```bash
+npm install @nlabs/rip-hunter
+# or
+yarn add @nlabs/rip-hunter
 ```
 
-### How to use
+---
 
-**Example:**
+## ⚡ Quick Start
+
+### REST Example
 
 ```js
-import {mutation, query, toGql} from '@nlabs/rip-hunter';
+import { get, post } from '@nlabs/rip-hunter';
 
-const AppActions = {
-  getData: () => {
-    // Variables
-    const url = 'http://www.example.com/graphql';
-    const gql = '{ app { ping } }';
+const url = 'https://api.example.com/data';
 
-    // Query data
-    return query(url, gql)
-      .then(results => {
-        console.log(results);
-        // Assuming the results will return the JSON object, {status: 'ok'}
-        // Output: {status: 'ok'}
-      })
-      .catch(error => {
-        // ApiError will be returned if any problems occur.
-      });
-  },
+// GET request with caching
+const data = await get(url, { userId: 123 }, { cache: true });
 
-  updateData: () => {
-    // Variables
-    const url = 'http://www.example.com/graphql';
-    const data = {hello: 'world'};
-    const gql = `{ user { update(data: ${toGql(data)}) } }`;
-
-    // Mutate data
-    return mutation(url, gql)
-      .then(results => {
-        console.log(results);
-        // Assuming the results will return the JSON object, {id: 'test', hello: 'world'}
-        // Output: {id: 'test', hello: 'world'}
-      })
-      .catch(error => {
-        // ApiError will be returned if any problems occur.
-      });
-  }
-}
-
+// POST request with auth token and timeout
+const result = await post(url, { name: 'Rip Hunter' }, {
+  token: 'your_jwt_token',
+  timeout: 5000
+});
 ```
 
-## API
+### GraphQL Example
 
-### Formatting
+```js
+import { query, mutation, toGql } from '@nlabs/rip-hunter';
+
+const url = 'https://api.example.com/graphql';
+const gql = '{ user { id name } }';
+
+// Query with timeout
+const userData = await query(url, gql, { timeout: 10000 });
+
+// Mutation with variables
+const input = { name: 'Rip Hunter' };
+const mutationGql = `mutation { createUser(input: ${toGql(input)}) { id name } }`;
+const created = await mutation(url, mutationGql, { timeout: 5000 });
+```
+
+---
+
+## 🛠️ API Reference
+
+### REST Functions
+
+#### `ajax(url, method, params?, options?)`
+
+Low-level HTTP request for any method.
+
+- **url**: `string` – Absolute URL
+- **method**: `string` – HTTP method (GET, POST, etc.)
+- **params**: `object` – Data to send (query for GET, body for others)
+- **options**: `{ headers?, token?, timeout?, cache? }`
+- **Returns**: `Promise<any>`
+
+#### `get(url, params?, options?)`
+
+HTTP GET request.
+
+- **url**: `string`
+- **params**: `object`
+- **options**: `{ headers?, token?, timeout?, cache? }`
+- **Returns**: `Promise<any>`
+
+#### `post(url, params?, options?)`
+
+HTTP POST request.
+
+- **url**: `string`
+- **params**: `object`
+- **options**: `{ headers?, token?, timeout? }`
+- **Returns**: `Promise<any>`
+
+#### `put(url, params?, options?)`
+
+HTTP PUT request.
+
+- **url**: `string`
+- **params**: `object`
+- **options**: `{ headers?, token?, timeout? }`
+- **Returns**: `Promise<any>`
+
+#### `del(url, params?, options?)`
+
+HTTP DELETE request.
+
+- **url**: `string`
+- **params**: `object`
+- **options**: `{ headers?, token?, timeout? }`
+- **Returns**: `Promise<any>`
+
+---
+
+### GraphQL Functions
+
+#### `query(url, body, options?)`
+
+Send a GraphQL query.
+
+- **url**: `string` – GraphQL endpoint
+- **body**: `string` – GraphQL query string
+- **options**: `{ headers?, token?, variables?, stripWhitespace?, timeout? }`
+- **Returns**: `Promise<any>`
+
+#### `mutation(url, body, options?)`
+
+Send a GraphQL mutation.
+
+- **url**: `string`
+- **body**: `string`
+- **options**: `{ headers?, token?, variables?, stripWhitespace?, timeout? }`
+- **Returns**: `Promise<any>`
+
+#### `graphqlQuery(url, query, options?)`
+
+Low-level GraphQL request.
+
+- **url**: `string` – GraphQL endpoint
+- **query**: `HunterQueryType | HunterQueryType[]` – Query object(s)
+- **options**: `{ headers?, token?, timeout? }`
+- **Returns**: `Promise<any>`
 
 #### `toGql(data)`
 
-Parses an immutable object, JSON object, string, or number into a GraphQL formatted string. This string is used when
-sending variables in a request.
+Convert JS objects, arrays, or primitives to GraphQL input strings.
 
-* [`data`] \(* Any *): An immutable object, JSON object, string or number to format for use with a GQL request.
+- **data**: `any`
+- **Returns**: `string`
+- **Example**:
 
-##### Returns
+  ```js
+  toGql({ name: 'Rip', age: 42 }) // => '{name: "Rip", age: 42}'
+  ```
 
-A string formatted for use with GQL.
+---
 
+### Events & Error Handling
 
-### Events
+#### `on(eventType, listener)`
 
-#### `on(eventType, data)`
+Subscribe to events (e.g., error events).
 
-Adds an event listener. The only event emitted is when an error occurs. The error event is _rip_hunter_error_.
+- **eventType**: `string` (e.g., 'rip_hunter_error')
+- **listener**: `Function`
 
-* [`eventType`] \(*String*): Event to subscribe for store updates.
-* [`listener`] \(*Function*): The callback to be invoked any time an action has been dispatched.
+#### `off(eventType, listener)`
 
-#### `off(eventType, data)`
+Unsubscribe from events.
 
-Removes an event listener.
+#### `ApiError`
 
-* [`eventType`] \(*String*): Event to unsubscribe.
-* [`listener`] \(*Function*): The callback associated with the subscribed event.
+All errors are wrapped in a consistent `ApiError` object for easy handling.
 
+- **.errors**: `string[]` – List of error messages
+- **.source**: `Error` – Original error object
 
-### AJAX
+---
 
-#### `ajax(url, method, params, options)`
+## 💡 Advanced Usage
 
-AJAX request.
+### Request Caching
 
-* [`url`] \(*String*): URL to send the request. Must be an absolute url.
-* [`method`] \(*String*): The HTTP method for the request.
-* [`params`] \(*Object*): Data to be sent with the request. Params will be converted to a query string for GET methods.
-* [`options`] \(*Object*): Rip Hunter options.
-  * [`headers`] \(*Object*): Overwrite the default headers.
-  * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
+```js
+// Cache GET requests for 5 minutes
+const data = await get('/api/users', {}, { cache: true });
+```
 
-##### Returns
+### Timeout Handling
 
-A promise with either the response data or ApiError.
+```js
+// Set 10 second timeout
+const result = await post('/api/data', payload, { timeout: 10000 });
+```
 
-#### `get(url, params, options)`
+### Custom Headers
 
-Server request using HTTP GET.
+```js
+const headers = new Headers({
+  'X-Custom-Header': 'value',
+  'Content-Type': 'application/json'
+});
 
-* [`url`] \(*String*): URL to send the request. Must be an absolute url.
-* [`params`] \(*Object*): Data to be sent with the request.
-* [`options`] \(*Object*): Rip Hunter options.
-  * [`headers`] \(*Object*): Overwrite the default headers.
-  * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
+const data = await get('/api/data', {}, { headers });
+```
 
-##### Returns
+### GraphQL Variables
 
-A promise with either the response data or ApiError.
+```js
+const query = `
+  query GetUser($id: ID!) {
+    user(id: $id) { name email }
+  }
+`;
 
-#### `post(url, params, options)`
+const variables = { id: '123' };
+const user = await query('/graphql', query, { variables });
+```
 
-Server request using HTTP POST.
+---
 
-* [`url`] \(*String*): URL to send the request. Must be an absolute url.
-* [`params`] \(*Object*): Data to be sent with the request.
-* [`options`] \(*Object*): Rip Hunter options.
-  * [`headers`] \(*Object*): Overwrite the default headers.
-  * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
+## 🚀 Performance Features
 
-##### Returns
+- **Request Deduplication**: Prevents duplicate requests to the same endpoint
+- **Built-in Caching**: Automatic caching for GET requests with 5-minute TTL
+- **Timeout Support**: Configurable request timeouts (default: 30s)
+- **Optimized Functions**: Lightweight utility functions for better performance
+- **Memory Efficient**: Minimal object creation and garbage collection
 
-A promise with either the response data or ApiError.
+---
 
-#### `put(url, params, options)`
+## 🤝 Contributing
 
-Server request using HTTP PUT.
+PRs and issues welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-* [`url`] \(*String*): URL to send the request. Must be an absolute url.
-* [`params`] \(*Object*): Data to be sent with the request.
-* [`options`] \(*Object*): Rip Hunter options.
-  * [`headers`] \(*Object*): Overwrite the default headers.
-  * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
+## 📄 License
 
-##### Returns
+MIT © Nitrogen Labs, Inc.
 
-A promise with either the response data or ApiError.
+## 🔗 Links
 
-#### `del(url, params, options)`
-
-Server request using HTTP DEL.
-
-* [`url`] \(*String*): GraphQL server endpoint. Must be an absolute url.
-* [`params`] \(*Object*): Data to be sent with the request.
-* [`options`] \(*Object*): Rip Hunter options.
-  * [`headers`] \(*Object*): Overwrite the default headers.
-  * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
-
-##### Returns
-
-A promise with either the response data or ApiError.
-
-### GraphQL
-
-#### `query(url, body, options)`
-
-Queries a GraphQL server.
-
-* [`url`] \(*String*): GraphQL server endpoint. Must be an absolute url.
-* [`body`] \(*String*): GraphQL query.
-* [`options`] \(*Object*): Rip Hunter options.
-  * [`headers`] \(*Object*): Overwrite the default headers.
-  * [`stripWhitespace`] \(*Boolean*): Removes whitespace in body. Default: false.
-  * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
-  * [`variables`] \(*Object*): Variables used in query. Default: {}.
-
-##### Returns
-
-A promise with either the response data or ApiError.
-
-#### `mutation(url, body, token, headers)`
-
-Modifies data on a GraphQL server.
-
-* [`url`] \(*String*): GraphQL server endpoint. Must be an absolute url.
-* [`body`] \(*String*): GraphQL query.
-* [`options`] \(*Object*): Rip Hunter options.
-  * [`headers`] \(*Object*): Overwrite the default headers.
-  * [`stripWhitespace`] \(*Boolean*): Removes whitespace in body. Default: false.
-  * [`token`] \(*String*): Add an _Authorization_ header with the value _Bearer [token]_.
-  * [`variables`] \(*Object*): Variables used in query. Default: {}.
-
-##### Returns
-
-A promise with either the response data or ApiError.
+- [GitHub](https://github.com/nitrogenlabs/rip-hunter)
+- [NPM](https://www.npmjs.com/package/rip-hunter)

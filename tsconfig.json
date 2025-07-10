@@ -5,40 +5,49 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "esModuleInterop": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
     "inlineSourceMap": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
     "lib": [
+      "esnext",
       "dom",
-      "es2015",
-      "es5",
-      "es6",
-      "es7",
-      "esnext"
+      "dom.iterable"
     ],
-    "module": "commonjs",
+    "module": "esnext",
     "moduleResolution": "node",
+    "noImplicitAny": false,
+    "noImplicitOverride": false,
     "noImplicitReturns": true,
     "noImplicitThis": true,
+    "noUncheckedIndexedAccess": false,
     "noUnusedLocals": true,
-    "outDir": "./lib",
-    "removeComments": true,
-    "skipLibCheck": true,
-    "target": "ES5",
+    "outDir": "lib",
+    "pretty": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": false,
+    "strict": false,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "target": "ES2022",
     "typeRoots": [
+      "../../node_modules/@types",
       "node_modules/@types",
       "node_modules/json-d-ts"
     ],
     "types": [
       "jest",
       "node"
-    ]
+    ],
+    "useDefineForClassFields": true,
+    "verbatimModuleSyntax": true
   },
-  "include": [
-    "./src/**/*"
-  ],
   "exclude": [
-    "**/*.test.*",
-    "./lib",
-    "./node_modules",
-    "./test"
+    "node_modules",
+    "lib"
+  ],
+  "include": [
+    "src/**/*"
   ]
 }

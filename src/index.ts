@@ -2,24 +2,32 @@
  * Copyright (c) 2017-Present, Nitrogen Labs, Inc.
  * Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms.
  */
-import isArray from 'lodash/isArray';
-import isEmpty from 'lodash/isEmpty';
-import isNull from 'lodash/isNull';
-import isPlainObject from 'lodash/isPlainObject';
-import isString from 'lodash/isString';
-import isUndefined from 'lodash/isUndefined';
-import omit from 'lodash/omit';
+import './polyfill';
 
 import {ApiError} from './errors/ApiError';
 
-if(typeof window === 'undefined') {
-  require('cross-fetch/polyfill');
-}
+// Lightweight utility functions to replace heavy imports
+const isArray = (value: any): value is any[] => Array.isArray(value);
+const isString = (value: any): value is string => typeof value === 'string';
+const isPlainObject = (value: any): value is Record<string, any> =>
+  value !== null && typeof value === 'object' && !isArray(value);
+const isEmpty = (value: any): boolean =>
+  value === null || value === undefined || value === '';
+const isNull = (value: any): boolean => value === null;
+const isUndefined = (value: any): boolean => value === undefined;
+
+// Cache for compiled regex patterns
+const JSON_CONTENT_TYPE_REGEX = /application\/json/i;
+
+// Request cache for deduplication
+const requestCache = new Map<string, Promise<any>>();
 
 export interface HunterOptionsType {
   readonly headers?: Headers;
   readonly token?: string;
   readonly variables?: any;
+  readonly timeout?: number;
+  readonly cache?: boolean;
 }
 
 export interface HunterQueryType {
@@ -30,15 +38,37 @@ export interface HunterQueryType {
 /**
  * JS utilities for GraphQL
  */
-export const removeSpaces = (str: string): string => str.replace(/\s+(?=(?:[^'"]*['"][^'"]*['"])*[^'"]*$)/gm, '');
+export const removeSpaces = (str: string): string =>
+  str.replace(/\s+(?=(?:[^'"]*['"][^'"]*['"])*[^'"]*$)/gm, '');
 
-export const queryString = (json: any): string => Object
-  .keys(json)
-  .map((key: string) => `${encodeURIComponent(key)}=${encodeURIComponent(json[key])}`).join('&');
+export const queryString = (json: any): string =>
+  Object.keys(json)
+    .map(
+      (key: string) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(json[key])}`
+    )
+    .join('&');
+
+// Create a timeout promise
+const createTimeout = (ms: number): Promise<never> =>
+  new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Request timeout')), ms)
+  );
+
+// Generate cache key for request deduplication
+const generateCacheKey = (url: string, method: string, params?: any, options?: HunterOptionsType): string => {
+  const key = JSON.stringify({method, options, params, url});
+  return btoa(key).slice(0, 50); // Truncate to reasonable length
+};
 
 // AJAX
-export const ajax = (url: string, method: string, params?, options: HunterOptionsType = {}): Promise<any> => {
-  const {headers, token} = options;
+export const ajax = (
+  url: string,
+  method: string,
+  params?,
+  options: HunterOptionsType = {}
+): Promise<any> => {
+  const {headers, token, timeout = 30000, cache = false} = options;
 
   let formatUrl: string = (url || '').trim();
   const formatToken: string = (token || '').trim();
@@ -65,14 +95,26 @@ export const ajax = (url: string, method: string, params?, options: HunterOption
     formatHeaders.set('Authorization', `Bearer ${formatToken}`);
   }
 
-  let isResponseJson: boolean;
+  // Check cache for GET requests
+  if(cache && formatMethod === 'GET') {
+    const cacheKey = generateCacheKey(formatUrl, formatMethod, params, options);
+    const cached = requestCache.get(cacheKey);
+    if(cached) {
+      return cached;
+    }
+  }
 
-  return fetch(formatUrl, {body: formatParams, headers: formatHeaders, method: formatMethod})
+  // Create the request promise
+  const requestPromise = fetch(formatUrl, {
+    body: formatParams,
+    headers: formatHeaders,
+    method: formatMethod
+  })
     .then((response: Response) => {
-      const regex = /application\/json/i;
-
-      // Check if response is json
-      isResponseJson = regex.test(response.headers.get('Content-Type') || '');
+      // Check if response is json using cached regex
+      const isResponseJson = JSON_CONTENT_TYPE_REGEX.test(
+        response.headers.get('Content-Type') || ''
+      );
 
       if(isResponseJson) {
         return response.json();
@@ -80,69 +122,98 @@ export const ajax = (url: string, method: string, params?, options: HunterOption
 
       return response.text();
     })
-    .then((results) => {
-      if(isResponseJson) {
-        return results;
-      }
-
-      return results;
-    })
+    .then((results) => results) // Simplified - no need for redundant check
     .catch((error) => {
       if((error || {}).message === 'only absolute urls are supported') {
-        return Promise.reject(new ApiError([{message: 'invalid_url'}], error));
+        return Promise.reject(
+          new ApiError([{message: 'invalid_url'}], error)
+        );
       }
 
-      return Promise.reject(new ApiError([{message: 'network_error'}], error));
+      return Promise.reject(
+        new ApiError([{message: 'network_error'}], error)
+      );
     });
+
+  // Add timeout if specified
+  const finalPromise = timeout > 0
+    ? Promise.race([requestPromise, createTimeout(timeout)])
+    : requestPromise;
+
+  // Cache the promise for GET requests
+  if(cache && formatMethod === 'GET') {
+    const cacheKey = generateCacheKey(formatUrl, formatMethod, params, options);
+    requestCache.set(cacheKey, finalPromise);
+
+    // Clean up cache after 5 minutes
+    setTimeout(() => requestCache.delete(cacheKey), 300000);
+  }
+
+  return finalPromise;
 };
 
-export const get = (url: string, params?, options?: HunterOptionsType): Promise<any> => ajax(url, 'GET', params, options);
+export const get = (
+  url: string,
+  params?,
+  options?: HunterOptionsType
+): Promise<any> => ajax(url, 'GET', params, options);
 
-export const post = (url: string, params?, options?: HunterOptionsType): Promise<any> => ajax(url, 'POST', params, options);
+export const post = (
+  url: string,
+  params?,
+  options?: HunterOptionsType
+): Promise<any> => ajax(url, 'POST', params, options);
 
-export const put = (url: string, params?, options?: HunterOptionsType): Promise<any> => ajax(url, 'PUT', params, options);
+export const put = (
+  url: string,
+  params?,
+  options?: HunterOptionsType
+): Promise<any> => ajax(url, 'PUT', params, options);
 
-export const del = (url: string, params?, options?: HunterOptionsType): Promise<any> => ajax(url, 'DELETE', params, options);
+export const del = (
+  url: string,
+  params?,
+  options?: HunterOptionsType
+): Promise<any> => ajax(url, 'DELETE', params, options);
 
-// GraphQL
+// Optimized toGql function
 export const toGql = (obj: any): string => {
   if(isString(obj)) {
     return JSON.stringify(obj);
   } else if(isPlainObject(obj)) {
-    let cleanObj = omit(obj, isUndefined);
-    cleanObj = omit(cleanObj, isNull);
+    // Filter out undefined and null values in one pass
+    const gqlProps: string[] = [];
 
-    const gqlProps: string[] = Object.keys(cleanObj).reduce((props: string[], key: string) => {
-      const item = obj[key];
+    for(const key in obj) {
+      if(obj.hasOwnProperty(key)) {
+        const item = obj[key];
 
-      if(isPlainObject(item)) {
-        props.push(toGql(item));
-      } else if(isArray(item)) {
-        const list = item.map((listItem) => toGql(listItem));
-        props.push(`${key}: [${list.join(', ')}]`);
-      } else {
-        const val = JSON.stringify(item);
+        // Skip undefined and null values
+        if(isUndefined(item) || isNull(item)) {
+          continue;
+        }
 
-        if(val) {
-          props.push(`${key}: ${val}`);
+        if(isPlainObject(item)) {
+          gqlProps.push(toGql(item));
+        } else if(isArray(item)) {
+          const list = item.map((listItem) => toGql(listItem));
+          gqlProps.push(`${key}: [${list.join(', ')}]`);
+        } else {
+          const val = JSON.stringify(item);
+          if(val) {
+            gqlProps.push(`${key}: ${val}`);
+          }
         }
       }
-
-      return props;
-    }, []);
-
-    const values = gqlProps.join(', ');
-
-    if(values === '') {
-      return '""';
     }
 
-    return `{${gqlProps.join(', ')}}`;
+    const values = gqlProps.join(', ');
+    return values === '' ? '""' : `{${gqlProps.join(', ')}}`;
   } else if(isArray(obj)) {
-    return `[${obj.map((objItem) => toGql(objItem)).toString()}]`;
+    return `[${obj.map((objItem) => toGql(objItem)).join(', ')}]`;
   }
 
-  return obj;
+  return String(obj);
 };
 
 export const graphqlQuery = (
@@ -150,59 +221,88 @@ export const graphqlQuery = (
   query: HunterQueryType | HunterQueryType[],
   options: HunterOptionsType = {}
 ): Promise<any> => {
-  const {headers, token} = options;
+  const {headers, token, timeout = 30000} = options;
   const formatUrl: string = url ? url.trim() : '';
   const formatToken: string = (token || '').trim();
-  const formatHeaders: Headers = headers || new Headers({'Content-Type': 'application/json'});
+  const formatHeaders: Headers =
+    headers || new Headers({'Content-Type': 'application/json'});
 
-  if(formatToken !== '') {
+  if(!isEmpty(formatToken)) {
     formatHeaders.set('Authorization', `Bearer ${formatToken}`);
   }
 
-  return fetch(formatUrl, {body: JSON.stringify(query), headers: formatHeaders, method: 'post'})
+  const requestPromise = fetch(formatUrl, {
+    body: JSON.stringify(query),
+    headers: formatHeaders,
+    method: 'post'
+  })
     .then((response: Response) => {
-      const regex: RegExp = /application\/json/i;
-      const isJson: boolean = regex.test(response.headers.get('Content-Type') || '');
+      const isJson: boolean = JSON_CONTENT_TYPE_REGEX.test(
+        response.headers.get('Content-Type') || ''
+      );
 
       if(isJson && response.body) {
         return response.json();
       }
 
-      return null; // {data: {}};
+      return null;
     })
     .catch((error) => {
       if((error || {}).message === 'only absolute urls are supported') {
-        return Promise.reject(new ApiError([{message: 'invalid_url'}], error));
+        return Promise.reject(
+          new ApiError([{message: 'invalid_url'}], error)
+        );
       }
 
-      return Promise.reject(new ApiError([{message: 'network_error'}], error));
+      return Promise.reject(
+        new ApiError([{message: 'network_error'}], error)
+      );
     })
     .then((json) => {
-      let updatedJson: any = {};
-
       if(!json || json.errors) {
         if(!json) {
-          return Promise.reject(new ApiError([{message: 'api_error'}], new Error()));
-        } else if((json.errors || []).some((error) => error.message === 'Must provide query string.')) {
-          return Promise.reject(new ApiError([{message: 'required_query'}], new Error()));
+          return Promise.reject(
+            new ApiError([{message: 'api_error'}], new Error())
+          );
+        } else if(
+          (json.errors || []).some(
+            (error) => error.message === 'Must provide query string.'
+          )
+        ) {
+          return Promise.reject(
+            new ApiError([{message: 'required_query'}], new Error())
+          );
         }
 
-        return json.errors ? Promise.reject(new ApiError(json.errors, new Error())) : updatedJson;
-      } else if(json) {
-        updatedJson = {...json};
+        return json.errors
+          ? Promise.reject(new ApiError(json.errors, new Error()))
+          : {};
       }
 
-      return updatedJson.data || {};
+      return json.data || {};
     })
-    .catch((error: ApiError) => {
-      let updatedError = error;
+    .catch((error: ApiError) =>
+      // Simplified error handling - no need to create new error if source exists
+      Promise.reject(error.source ? error : new ApiError([{message: 'network_error'}], error))
+    );
 
-      if(!error.source) {
-        updatedError = new ApiError([{message: 'network_error'}], error);
-      }
-
-      return Promise.reject(updatedError);
-    });
+  // Add timeout if specified
+  return timeout > 0
+    ? Promise.race([requestPromise, createTimeout(timeout)])
+    : requestPromise;
 };
+
+// Add query and mutation functions for better API consistency
+export const query = (
+  url: string,
+  body: string,
+  options: HunterOptionsType = {}
+): Promise<any> => graphqlQuery(url, {query: body}, options);
+
+export const mutation = (
+  url: string,
+  body: string,
+  options: HunterOptionsType = {}
+): Promise<any> => graphqlQuery(url, {query: body}, options);
 
 export {ApiError} from './errors/ApiError';

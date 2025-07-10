@@ -3,6 +3,7 @@
   "version": "2.6.4",
   "description": "JS utilities for AJAX and GraphQL",
   "license": "MIT",
+  "type": "module",
   "main": "./lib/index.js",
   "module": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -33,7 +34,7 @@
   "scripts": {
     "build": "lex compile --remove",
     "clean": "lex clean",
-    "lint": "eslint ./src --ext .ts,.tsx",
+    "lint": "lex lint --fix",
     "prepublishOnly": "npm run lint && npm run test && npm run build",
     "pretest": "stage=test npm run lint",
     "publish:major": "npm version major && npm run publish:tags && npm publish",
@@ -42,18 +43,18 @@
     "publish:tags": "git push --tags && git push origin HEAD",
     "test": "lex test",
     "update": "lex update --interactive",
-    "watch": "lex compile --remove -watch"
+    "watch": "lex compile --remove -watch",
+    "benchmark": "node --experimental-modules ./benchmark.js"
   },
   "dependencies": {
-    "cross-fetch": "4.0.0",
-    "lodash": "4.17.21"
+    "cross-fetch": "4.1.0"
   },
   "devDependencies": {
+    "@jest/globals": "30.0.4",
+    "@nlabs/lex": "1.47.2",
     "@nlabs/fetch-mock": "1.0.2",
-    "@types/jest": "29.5.11",
-    "@types/node": "20.11.8",
-    "eslint": "8.56.0",
-    "eslint-config-styleguidejs": "3.2.1",
-    "typescript": "5.3.3"
+    "@types/jest": "30.0.0",
+    "@types/node": "24.0.12",
+    "typescript": "5.8.3"
   }
 }
