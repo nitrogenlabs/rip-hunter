@@ -23,6 +23,7 @@
 - **Request Caching**: Built-in caching for GET requests
 - **Timeout Support**: Configurable request timeouts
 - **Request Deduplication**: Prevents duplicate requests
+- **Real-time Updates**: Server-Sent Events (SSE) support
 
 ---
 
@@ -32,6 +33,9 @@
 npm install @nlabs/rip-hunter
 # or
 yarn add @nlabs/rip-hunter
+
+# For Node.js SSE support (optional)
+npm install eventsource
 ```
 
 ---
@@ -70,6 +74,33 @@ const userData = await query(url, gql, { timeout: 10000 });
 const input = { name: 'Rip Hunter' };
 const mutationGql = `mutation { createUser(input: ${toGql(input)}) { id name } }`;
 const created = await mutation(url, mutationGql, { timeout: 5000 });
+```
+
+### SSE Example
+
+```js
+import { subscribeSSE } from '@nlabs/rip-hunter';
+
+// Subscribe to real-time updates
+const unsubscribe = subscribeSSE('https://api.example.com/stream', {
+  onMessage: (event) => {
+    console.log('Received:', event.data);
+  },
+  onError: (error) => {
+    console.error('SSE Error:', error);
+  },
+  onOpen: () => {
+    console.log('SSE connection opened');
+  }
+}, {
+  token: 'your_jwt_token',
+  timeout: 30000,
+  retryInterval: 1000,
+  maxRetries: 5
+});
+
+// Later, to stop listening:
+unsubscribe();
 ```
 
 ---
@@ -169,6 +200,37 @@ Convert JS objects, arrays, or primitives to GraphQL input strings.
 
 ---
 
+### SSE Functions
+
+#### `subscribeSSE(url, callbacks, options?)`
+
+Subscribe to Server-Sent Events.
+
+- **url**: `string` – SSE endpoint URL
+- **callbacks**: `HunterSSECallbackType` – Event handlers
+  - `onMessage?: (event: HunterSSEEventType) => void`
+  - `onOpen?: (event: Event) => void`
+  - `onError?: (error: Error | Event) => void`
+  - `onRetry?: (attempt: number, delay: number) => void`
+- **options**: `HunterSSEOptionsType` – Connection options
+  - `headers?: Headers`
+  - `token?: string`
+  - `timeout?: number` (default: 30000)
+  - `retryInterval?: number` (default: 1000)
+  - `maxRetries?: number` (default: 5)
+- **Returns**: `() => void` – Cleanup function
+
+#### `HunterSSEEventType`
+
+SSE event object with:
+
+- `data: string` – Event data
+- `type: string` – Event type
+- `id?: string` – Event ID
+- `retry?: number` – Retry interval (if specified by server)
+
+---
+
 ### Events & Error Handling
 
 #### `on(eventType, listener)`
@@ -231,6 +293,29 @@ const variables = { id: '123' };
 const user = await query('/graphql', query, { variables });
 ```
 
+### SSE with Authentication
+
+```js
+const headers = new Headers({
+  'Authorization': 'Bearer your-token',
+  'Accept': 'text/event-stream'
+});
+
+const unsubscribe = subscribeSSE('/api/notifications', {
+  onMessage: (event) => {
+    const notification = JSON.parse(event.data);
+    console.log('New notification:', notification);
+  },
+  onError: (error) => {
+    console.error('SSE error:', error);
+  }
+}, {
+  headers,
+  timeout: 60000,
+  maxRetries: 10
+});
+```
+
 ---
 
 ## 🚀 Performance Features
@@ -240,6 +325,15 @@ const user = await query('/graphql', query, { variables });
 - **Timeout Support**: Configurable request timeouts (default: 30s)
 - **Optimized Functions**: Lightweight utility functions for better performance
 - **Memory Efficient**: Minimal object creation and garbage collection
+- **SSE Reconnection**: Automatic retry with exponential backoff for SSE connections
+
+---
+
+## 🌐 Environment Support
+
+- **Browser**: Full support for all features including SSE
+- **Node.js**: Full REST/GraphQL support, SSE requires `eventsource` package
+- **Serverless**: REST/GraphQL support (SSE not recommended in serverless)
 
 ---
 

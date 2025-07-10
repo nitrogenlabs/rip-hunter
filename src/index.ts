@@ -2,11 +2,9 @@
  * Copyright (c) 2017-Present, Nitrogen Labs, Inc.
  * Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms.
  */
-import './polyfill';
 
 import {ApiError} from './errors/ApiError';
 
-// Lightweight utility functions to replace heavy imports
 const isArray = (value: any): value is any[] => Array.isArray(value);
 const isString = (value: any): value is string => typeof value === 'string';
 const isPlainObject = (value: any): value is Record<string, any> =>
@@ -35,9 +33,28 @@ export interface HunterQueryType {
   readonly variables?: any;
 }
 
-/**
- * JS utilities for GraphQL
- */
+export interface HunterSSEOptionsType {
+  readonly headers?: Headers;
+  readonly token?: string;
+  readonly timeout?: number;
+  readonly retryInterval?: number;
+  readonly maxRetries?: number;
+}
+
+export interface HunterSSEEventType {
+  readonly data: string;
+  readonly type: string;
+  readonly id?: string;
+  readonly retry?: number | undefined;
+}
+
+export interface HunterSSECallbackType {
+  onMessage?: (event: HunterSSEEventType) => void;
+  onOpen?: (event: Event) => void;
+  onError?: (error: Error | Event) => void;
+  onRetry?: (attempt: number, delay: number) => void;
+}
+
 export const removeSpaces = (str: string): string =>
   str.replace(/\s+(?=(?:[^'"]*['"][^'"]*['"])*[^'"]*$)/gm, '');
 
@@ -59,6 +76,16 @@ const createTimeout = (ms: number): Promise<never> =>
 const generateCacheKey = (url: string, method: string, params?: any, options?: HunterOptionsType): string => {
   const key = JSON.stringify({method, options, params, url});
   return btoa(key).slice(0, 50); // Truncate to reasonable length
+};
+
+// SSE EventSource polyfill for Node.js
+const createEventSource = (url: string, options?: HunterSSEOptionsType): EventSource => {
+  if(typeof EventSource !== 'undefined') {
+    return new EventSource(url);
+  }
+
+  // For Node.js, we'll throw an error suggesting the user install eventsource
+  throw new Error('EventSource not available in this environment. For Node.js support, install the "eventsource" package and import it manually.');
 };
 
 // AJAX
@@ -194,7 +221,7 @@ export const toGql = (obj: any): string => {
         }
 
         if(isPlainObject(item)) {
-          gqlProps.push(toGql(item));
+          gqlProps.push(`${key}: ${toGql(item)}`);
         } else if(isArray(item)) {
           const list = item.map((listItem) => toGql(listItem));
           gqlProps.push(`${key}: [${list.join(', ')}]`);
@@ -304,5 +331,113 @@ export const mutation = (
   body: string,
   options: HunterOptionsType = {}
 ): Promise<any> => graphqlQuery(url, {query: body}, options);
+
+// SSE Support
+export const subscribeSSE = (
+  url: string,
+  callbacks: HunterSSECallbackType,
+  options: HunterSSEOptionsType = {}
+): (() => void) => {
+  const {headers, token, timeout = 30000, retryInterval = 1000, maxRetries = 5} = options;
+  const formatUrl: string = (url || '').trim();
+  const formatToken: string = (token || '').trim();
+  const formatHeaders: Headers = headers || new Headers();
+
+  // Add authorization header if token provided
+  if(!isEmpty(formatToken)) {
+    formatHeaders.set('Authorization', `Bearer ${formatToken}`);
+  }
+
+  let retryCount = 0;
+  let eventSource: EventSource | null = null;
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  const connect = (): void => {
+    try {
+      eventSource = createEventSource(formatUrl, {headers: formatHeaders});
+
+      // Set up timeout
+      if(timeout > 0) {
+        timeoutId = setTimeout(() => {
+          if(eventSource) {
+            eventSource.close();
+            if(callbacks.onError) {
+              callbacks.onError(new Error('SSE connection timeout'));
+            }
+          }
+        }, timeout);
+      }
+
+      // Event handlers
+      eventSource.onopen = (event) => {
+        if(timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        retryCount = 0; // Reset retry count on successful connection
+        if(callbacks.onOpen) {
+          callbacks.onOpen(event);
+        }
+      };
+
+      eventSource.onmessage = (event) => {
+        if(callbacks.onMessage) {
+          const sseEvent: HunterSSEEventType = {
+            data: event.data,
+            id: event.lastEventId,
+            retry: event.data.includes('retry:') ? parseInt(event.data.split('retry:')[1]) : undefined,
+            type: event.type
+          };
+          callbacks.onMessage(sseEvent);
+        }
+      };
+
+      eventSource.onerror = (event) => {
+        if(timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+
+        if(eventSource && eventSource.readyState === EventSource.CLOSED) {
+          // Connection closed, attempt retry if within limits
+          if(retryCount < maxRetries) {
+            retryCount++;
+            if(callbacks.onRetry) {
+              callbacks.onRetry(retryCount, retryInterval);
+            }
+            setTimeout(connect, retryInterval);
+          } else {
+            if(callbacks.onError) {
+              callbacks.onError(new Error('SSE connection failed after max retries'));
+            }
+          }
+        } else {
+          if(callbacks.onError) {
+            callbacks.onError(event);
+          }
+        }
+      };
+    } catch(error) {
+      if(callbacks.onError) {
+        callbacks.onError(error instanceof Error ? error : new Error('Failed to create SSE connection'));
+      }
+    }
+  };
+
+  // Start the connection
+  connect();
+
+  // Return cleanup function
+  return () => {
+    if(timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+    if(eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
+  };
+};
 
 export {ApiError} from './errors/ApiError';

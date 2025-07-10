@@ -46,8 +46,8 @@
     "watch": "lex compile --remove -watch",
     "benchmark": "node --experimental-modules ./benchmark.js"
   },
-  "dependencies": {
-    "cross-fetch": "4.1.0"
+  "optionalDependencies": {
+    "eventsource": "^2.0.2"
   },
   "devDependencies": {
     "@jest/globals": "30.0.4",

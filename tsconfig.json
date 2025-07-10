@@ -45,7 +45,9 @@
   },
   "exclude": [
     "node_modules",
-    "lib"
+    "lib",
+    "benchmark.js",
+    "index.js"
   ],
   "include": [
     "src/**/*"
