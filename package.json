@@ -7,6 +7,23 @@
   "main": "./lib/index.js",
   "module": "./lib/index.js",
   "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.js"
+    },
+    "./errors": {
+      "types": "./lib/errors/ApiError.d.ts",
+      "import": "./lib/errors/ApiError.js",
+      "require": "./lib/errors/ApiError.js"
+    },
+    "./errors/ApiError": {
+      "types": "./lib/errors/ApiError.d.ts",
+      "import": "./lib/errors/ApiError.js",
+      "require": "./lib/errors/ApiError.js"
+    }
+  },
   "keywords": [
     "ajax",
     "api",
