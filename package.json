@@ -1,6 +1,6 @@
 {
   "name": "@nlabs/rip-hunter",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "JS utilities for AJAX and GraphQL",
   "license": "MIT",
   "type": "module",
