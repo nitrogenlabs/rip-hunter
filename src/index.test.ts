@@ -1,6 +1,7 @@
 import {jest} from '@jest/globals';
 import {FetchMock} from '@nlabs/fetch-mock';
 
+import {ApiError} from './errors/ApiError.js';
 import {
   ajax,
   del,
@@ -14,8 +15,7 @@ import {
   removeSpaces,
   subscribeSSE,
   toGql
-} from '.';
-import {ApiError} from './errors/ApiError';
+} from './index.js';
 
 describe('rip-hunter', () => {
   const fetchMock = new FetchMock();

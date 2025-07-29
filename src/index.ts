@@ -3,7 +3,7 @@
  * Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms.
  */
 
-import {ApiError} from './errors/ApiError';
+import {ApiError} from './errors/ApiError.js';
 
 const isArray = (value: any): value is any[] => Array.isArray(value);
 const isString = (value: any): value is string => typeof value === 'string';
@@ -440,4 +440,4 @@ export const subscribeSSE = (
   };
 };
 
-export {ApiError} from './errors/ApiError';
+export {ApiError} from './errors/ApiError.js';

@@ -1,6 +1,6 @@
 import {jest} from '@jest/globals';
 
-import {subscribeSSE} from './index';
+import {subscribeSSE} from './index.js';
 
 describe('SSE Functionality', () => {
   it('should create SSE subscription with proper cleanup', () => {
