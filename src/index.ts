@@ -55,6 +55,23 @@ export interface HunterSSECallbackType {
   onRetry?: (attempt: number, delay: number) => void;
 }
 
+export interface HunterSubscriptionOptionsType {
+  readonly headers?: Headers;
+  readonly token?: string;
+  readonly variables?: Record<string, unknown>;
+  readonly connectionParams?: Record<string, unknown>;
+  readonly reconnectInterval?: number;
+  readonly maxReconnectAttempts?: number;
+  readonly timeout?: number;
+}
+
+export interface HunterSubscriptionCallbackType {
+  onNext?: (data: any) => void;
+  onError?: (error: Error | Event) => void;
+  onComplete?: () => void;
+  onReconnect?: (attempt: number) => void;
+}
+
 export const removeSpaces = (str: string): string =>
   str.replace(/\s+(?=(?:[^'"]*['"][^'"]*['"])*[^'"]*$)/gm, '');
 
@@ -87,6 +104,252 @@ const createEventSource = (url: string, options?: HunterSSEOptionsType): EventSo
   // For Node.js, we'll throw an error suggesting the user install eventsource
   throw new Error('EventSource not available in this environment. For Node.js support, install the "eventsource" package and import it manually.');
 };
+
+// WebSocket client for GraphQL subscriptions (graphql-ws protocol)
+class GraphQLSubscriptionClient {
+  private ws: WebSocket | null = null;
+  private url: string;
+  private options: HunterSubscriptionOptionsType;
+  private reconnectAttempts = 0;
+  private reconnectTimer: NodeJS.Timeout | null = null;
+  private messageQueue: string[] = [];
+  private isConnecting = false;
+  private isConnected = false;
+  private subscriptions = new Map<string, HunterSubscriptionCallbackType>();
+  private messageHandlers = new Map<string, (event: MessageEvent) => void>();
+
+  constructor(url: string, options: HunterSubscriptionOptionsType = {}) {
+    this.url = url;
+    this.options = options;
+  }
+
+  private convertToWebSocketUrl(url: string): string {
+    return url.replace(/^http/, 'ws').replace(/^https/, 'wss');
+  }
+
+  private connect(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if(this.isConnecting) {
+        return;
+      }
+      this.isConnecting = true;
+
+      try {
+        const wsUrl = this.convertToWebSocketUrl(this.url);
+
+        if(typeof WebSocket === 'undefined') {
+          this.isConnecting = false;
+          reject(new Error('WebSocket not available in this environment. For Node.js support, you may need to install a WebSocket library.'));
+          return;
+        }
+
+        this.ws = new WebSocket(wsUrl, 'graphql-ws');
+
+        this.ws.onopen = () => {
+          this.isConnecting = false;
+          this.isConnected = true;
+          this.reconnectAttempts = 0;
+
+          const initMessage = {
+            type: 'connection_init',
+            payload: this.options.connectionParams || {}
+          };
+          this.send(JSON.stringify(initMessage));
+
+          while(this.messageQueue.length > 0) {
+            const message = this.messageQueue.shift();
+            if(message && this.ws?.readyState === WebSocket.OPEN) {
+              this.ws.send(message);
+            }
+          }
+
+          resolve();
+        };
+
+        this.ws.onerror = (error) => {
+          this.isConnecting = false;
+          if(!this.isConnected) {
+            reject(error);
+          }
+        };
+
+        this.ws.onclose = () => {
+          this.isConnecting = false;
+          this.isConnected = false;
+          this.handleReconnect();
+        };
+
+        this.ws.onmessage = (event: MessageEvent) => {
+          try {
+            const message = JSON.parse(event.data);
+
+            if(message.type === 'connection_ack') {
+              return;
+            }
+
+            if(message.type === 'connection_error') {
+              const error = new Error(message.payload?.message || 'Connection error');
+              this.subscriptions.forEach((callbacks) => {
+                if(callbacks.onError) {
+                  callbacks.onError(error);
+                }
+              });
+              return;
+            }
+
+            const subscriptionId = message.id;
+            const callbacks = this.subscriptions.get(subscriptionId);
+
+            if(callbacks) {
+              switch(message.type) {
+                case 'data':
+                  if(callbacks.onNext) {
+                    callbacks.onNext(message.payload?.data || message.payload);
+                  }
+                  break;
+                case 'error':
+                  if(callbacks.onError) {
+                    const error = new ApiError(
+                      Array.isArray(message.payload) ? message.payload : [message.payload],
+                      new Error('GraphQL subscription error')
+                    );
+                    callbacks.onError(error);
+                  }
+                  break;
+                case 'complete':
+                  if(callbacks.onComplete) {
+                    callbacks.onComplete();
+                  }
+                  this.subscriptions.delete(subscriptionId);
+                  const handler = this.messageHandlers.get(subscriptionId);
+                  if(handler && this.ws) {
+                    this.ws.removeEventListener('message', handler);
+                    this.messageHandlers.delete(subscriptionId);
+                  }
+                  break;
+              }
+            }
+          } catch(error) {
+            this.subscriptions.forEach((callbacks) => {
+              if(callbacks.onError) {
+                callbacks.onError(error instanceof Error ? error : new Error('Parse error'));
+              }
+            });
+          }
+        };
+      } catch(error) {
+        this.isConnecting = false;
+        reject(error);
+      }
+    });
+  }
+
+  private handleReconnect(): void {
+    const {maxReconnectAttempts = 5, reconnectInterval = 1000} = this.options;
+
+    if(this.reconnectAttempts < maxReconnectAttempts && this.subscriptions.size > 0) {
+      this.reconnectAttempts++;
+
+      this.subscriptions.forEach((callbacks) => {
+        if(callbacks.onReconnect) {
+          callbacks.onReconnect(this.reconnectAttempts);
+        }
+      });
+
+      this.reconnectTimer = setTimeout(() => {
+        this.connect().catch(() => {
+        });
+      }, reconnectInterval);
+    } else if(this.subscriptions.size > 0) {
+      const error = new Error('WebSocket reconnection failed after max attempts');
+      this.subscriptions.forEach((callbacks) => {
+        if(callbacks.onError) {
+          callbacks.onError(error);
+        }
+      });
+    }
+  }
+
+  private send(message: string): void {
+    if(this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(message);
+    } else {
+      this.messageQueue.push(message);
+      if(!this.isConnecting && !this.isConnected) {
+        this.connect().catch(() => {
+        });
+      }
+    }
+  }
+
+  subscribe(
+    query: string,
+    variables: Record<string, unknown> | undefined,
+    callbacks: HunterSubscriptionCallbackType
+  ): () => void {
+    const subscriptionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    this.subscriptions.set(subscriptionId, callbacks);
+
+    const startMessage = {
+      id: subscriptionId,
+      type: 'start',
+      payload: {
+        query,
+        variables: variables || {}
+      }
+    };
+
+    const ensureConnection = (): void => {
+      if(!this.isConnected && !this.isConnecting) {
+        this.connect().then(() => {
+          this.send(JSON.stringify(startMessage));
+        }).catch((error) => {
+          if(callbacks.onError) {
+            callbacks.onError(error);
+          }
+        });
+      } else if(this.isConnected) {
+        this.send(JSON.stringify(startMessage));
+      }
+    };
+
+    ensureConnection();
+
+    return () => {
+      const stopMessage = {
+        id: subscriptionId,
+        type: 'stop'
+      };
+      this.send(JSON.stringify(stopMessage));
+      this.subscriptions.delete(subscriptionId);
+      const handler = this.messageHandlers.get(subscriptionId);
+      if(handler && this.ws) {
+        this.ws.removeEventListener('message', handler);
+        this.messageHandlers.delete(subscriptionId);
+      }
+    };
+  }
+
+  close(): void {
+    if(this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if(this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+    this.messageQueue = [];
+    this.subscriptions.clear();
+    this.messageHandlers.clear();
+    this.isConnected = false;
+    this.isConnecting = false;
+  }
+}
+
+// Subscription client cache
+const subscriptionClients = new Map<string, GraphQLSubscriptionClient>();
 
 // AJAX
 export const ajax = (
@@ -251,8 +514,7 @@ export const graphqlQuery = (
   const {headers, token, timeout = 30000} = options;
   const formatUrl: string = url ? url.trim() : '';
   const formatToken: string = (token || '').trim();
-  const formatHeaders: Headers =
-    headers || new Headers({'Content-Type': 'application/json'});
+  const formatHeaders: Headers = headers || new Headers({'Content-Type': 'application/json'});
 
   if(!isEmpty(formatToken)) {
     formatHeaders.set('Authorization', `Bearer ${formatToken}`);
@@ -331,6 +593,40 @@ export const mutation = (
   body: string,
   options: HunterOptionsType = {}
 ): Promise<any> => graphqlQuery(url, {query: body}, options);
+
+// GraphQL Subscriptions
+export const subscribe = (
+  url: string,
+  query: string,
+  callbacks: HunterSubscriptionCallbackType,
+  options: HunterSubscriptionOptionsType = {}
+): (() => void) => {
+  const {token, variables, connectionParams, headers} = options;
+  const formatUrl: string = (url || '').trim();
+  const formatToken: string = (token || '').trim();
+
+  if(!formatUrl) {
+    if(callbacks.onError) {
+      callbacks.onError(new Error('Subscription URL is required'));
+    }
+    return () => {};
+  }
+
+  let client = subscriptionClients.get(formatUrl);
+  if(!client) {
+    const clientOptions: HunterSubscriptionOptionsType = {
+      ...options,
+      connectionParams: {
+        ...connectionParams,
+        ...(formatToken ? {authorization: `Bearer ${formatToken}`} : {})
+      }
+    };
+    client = new GraphQLSubscriptionClient(formatUrl, clientOptions);
+    subscriptionClients.set(formatUrl, client);
+  }
+
+  return client.subscribe(query, variables, callbacks);
+};
 
 // SSE Support
 export const subscribeSSE = (

@@ -64,14 +64,24 @@
     "benchmark": "node --experimental-modules ./benchmark.js"
   },
   "optionalDependencies": {
-    "eventsource": "^2.0.2"
+    "eventsource": "^4.1.0"
   },
   "devDependencies": {
-    "@jest/globals": "30.0.4",
-    "@nlabs/lex": "1.47.2",
+    "@jest/globals": "30.2.0",
     "@nlabs/fetch-mock": "1.0.2",
+    "@nlabs/lex": "1.53.2",
     "@types/jest": "30.0.0",
-    "@types/node": "24.0.12",
-    "typescript": "5.8.3"
+    "@types/node": "25.0.8",
+    "jest-websocket-mock": "^2.5.0",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "cross-spawn": "^7.0.6",
+    "got": "^14.6.6",
+    "http-cache-semantics": "^4.2.0",
+    "http-proxy-middleware": "^3.0.5",
+    "postcss": "^8.5.6",
+    "semver-regex": "^4.0.5",
+    "tmp": "^0.2.5"
   }
 }

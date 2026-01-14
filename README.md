@@ -13,7 +13,7 @@
 
 ---
 
-## 🚀 Why rip-hunter?
+## Why rip-hunter?
 
 - **Unified API**: One package for both REST and GraphQL endpoints
 - **ESM & TypeScript Native**: Modern, type-safe, and tree-shakable
@@ -25,10 +25,11 @@
 - **Timeout Support**: Configurable request timeouts
 - **Request Deduplication**: Prevents duplicate requests
 - **Real-time Updates**: Server-Sent Events (SSE) support
+- **GraphQL Subscriptions**: WebSocket-based subscriptions with automatic reconnection
 
 ---
 
-## 📦 Installation
+## Installation
 
 ```bash
 npm install @nlabs/rip-hunter
@@ -75,6 +76,50 @@ const userData = await query(url, gql, { timeout: 10000 });
 const input = { name: 'Rip Hunter' };
 const mutationGql = `mutation { createUser(input: ${toGql(input)}) { id name } }`;
 const created = await mutation(url, mutationGql, { timeout: 5000 });
+```
+
+### GraphQL Subscription Example
+
+```js
+import { subscribe } from '@nlabs/rip-hunter';
+
+// Subscribe to real-time GraphQL updates
+const unsubscribe = subscribe(
+  'wss://api.example.com/graphql',
+  `
+    subscription {
+      userUpdated {
+        id
+        name
+        email
+      }
+    }
+  `,
+  {
+    onNext: (data) => {
+      console.log('User updated:', data.userUpdated);
+    },
+    onError: (error) => {
+      console.error('Subscription error:', error);
+    },
+    onComplete: () => {
+      console.log('Subscription completed');
+    },
+    onReconnect: (attempt) => {
+      console.log(`Reconnecting... (attempt ${attempt})`);
+    }
+  },
+  {
+    token: 'your_jwt_token',
+    variables: { userId: '123' },
+    connectionParams: { clientId: 'my-client' },
+    maxReconnectAttempts: 10,
+    reconnectInterval: 1000
+  }
+);
+
+// Later, to unsubscribe:
+unsubscribe();
 ```
 
 ### SSE Example
@@ -178,6 +223,27 @@ Send a GraphQL mutation.
 - **options**: `{ headers?, token?, variables?, stripWhitespace?, timeout? }`
 - **Returns**: `Promise<any>`
 
+#### `subscribe(url, query, callbacks, options?)`
+
+Subscribe to a GraphQL subscription over WebSocket (graphql-ws protocol).
+
+- **url**: `string` – WebSocket URL (ws:// or wss://)
+- **query**: `string` – GraphQL subscription query string
+- **callbacks**: `HunterSubscriptionCallbackType` – Event handlers
+  - `onNext?: (data: any) => void` – Called when new data arrives
+  - `onError?: (error: Error | Event) => void` – Called on errors
+  - `onComplete?: () => void` – Called when subscription completes
+  - `onReconnect?: (attempt: number) => void` – Called during reconnection attempts
+- **options**: `HunterSubscriptionOptionsType`
+  - `token?: string` – Authentication token
+  - `variables?: Record<string, unknown>` – GraphQL variables
+  - `connectionParams?: Record<string, unknown>` – WebSocket connection parameters
+  - `maxReconnectAttempts?: number` – Maximum reconnection attempts (default: 5)
+  - `reconnectInterval?: number` – Delay between reconnection attempts in ms (default: 1000)
+  - `timeout?: number` – Connection timeout
+  - `headers?: Headers` – Custom headers
+- **Returns**: `() => void` – Unsubscribe function
+
 #### `graphqlQuery(url, query, options?)`
 
 Low-level GraphQL request.
@@ -254,7 +320,7 @@ All errors are wrapped in a consistent `ApiError` object for easy handling.
 
 ---
 
-## 💡 Advanced Usage
+## Advanced Usage
 
 ### Request Caching
 
@@ -319,7 +385,7 @@ const unsubscribe = subscribeSSE('/api/notifications', {
 
 ---
 
-## 🚀 Performance Features
+## Performance Features
 
 - **Request Deduplication**: Prevents duplicate requests to the same endpoint
 - **Built-in Caching**: Automatic caching for GET requests with 5-minute TTL
@@ -330,7 +396,7 @@ const unsubscribe = subscribeSSE('/api/notifications', {
 
 ---
 
-## 🌐 Environment Support
+## Environment Support
 
 - **Browser**: Full support for all features including SSE
 - **Node.js**: Full REST/GraphQL support, SSE requires `eventsource` package
@@ -338,11 +404,11 @@ const unsubscribe = subscribeSSE('/api/notifications', {
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 PRs and issues welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-## 📄 License
+## License
 
 MIT © Nitrogen Labs, Inc.
 

@@ -13,6 +13,7 @@ import {
   query,
   queryString,
   removeSpaces,
+  subscribe,
   subscribeSSE,
   toGql
 } from './index.js';
