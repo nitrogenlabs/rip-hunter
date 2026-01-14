@@ -42,7 +42,7 @@ npm install eventsource
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### REST Example
 
@@ -151,7 +151,7 @@ unsubscribe();
 
 ---
 
-## 🛠️ API Reference
+## API Reference
 
 ### REST Functions
 
