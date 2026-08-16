@@ -1,22 +1,24 @@
-import {jest} from '@jest/globals';
+import {vi} from 'vitest';
 
 import {subscribeSSE} from './index.js';
 
 describe('SSE Functionality', () => {
   it('should create SSE subscription with proper cleanup', () => {
     const mockEventSource = {
-      close: jest.fn(),
+      close: vi.fn(),
       onerror: null as any,
       onmessage: null as any,
       onopen: null as any,
       readyState: 0
     };
 
-    global.EventSource = jest.fn(() => mockEventSource) as any;
+    global.EventSource = vi.fn(function EventSource() {
+      return mockEventSource;
+    }) as any;
 
-    const onError = jest.fn();
-    const onMessage = jest.fn();
-    const onOpen = jest.fn();
+    const onError = vi.fn();
+    const onMessage = vi.fn();
+    const onOpen = vi.fn();
 
     const unsubscribe = subscribeSSE('https://api.example.com/stream', {
       onError,
@@ -51,16 +53,18 @@ describe('SSE Functionality', () => {
 
   it('should handle errors properly', () => {
     const mockEventSource = {
-      close: jest.fn(),
+      close: vi.fn(),
       onerror: null as any,
       onmessage: null as any,
       onopen: null as any,
       readyState: 2
     };
 
-    global.EventSource = jest.fn(() => mockEventSource) as any;
+    global.EventSource = vi.fn(function EventSource() {
+      return mockEventSource;
+    }) as any;
 
-    const onError = jest.fn();
+    const onError = vi.fn();
 
     subscribeSSE('https://api.example.com/stream', {
       onError

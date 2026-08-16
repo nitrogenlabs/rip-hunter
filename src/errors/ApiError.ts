@@ -6,9 +6,9 @@ export class ApiError extends Error {
   source: Error;
   errors: string[];
 
-  constructor(list, error) {
+  constructor(list: Array<{message: string}>, error: Error) {
     super('API Error');
     this.source = error;
-    this.errors = list ? list.map((errorItem: Error) => errorItem.message) : [];
+    this.errors = list ? list.map((errorItem) => errorItem.message) : [];
   }
 }

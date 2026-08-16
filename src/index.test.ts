@@ -1,4 +1,4 @@
-import {jest} from '@jest/globals';
+import {vi} from 'vitest';
 import {FetchMock} from '@nlabs/fetch-mock';
 
 import {ApiError} from './errors/ApiError.js';
@@ -39,11 +39,11 @@ describe('rip-hunter', () => {
       delete (global as any).fetch;
     }
 
-    jest.clearAllTimers();
+    vi.clearAllTimers();
   });
 
   describe('#fetchMock', () => {
-    it('should verify fetch mock is working', (done) => {
+    it('should verify fetch mock is working', () => new Promise<void>((resolve, reject) => {
       const testData = {test: 'data'};
 
       fetchMock.getOnce('https://test.com/api', {
@@ -57,12 +57,12 @@ describe('rip-hunter', () => {
         .then((response) => response.json())
         .then((data) => {
           expect(data).toEqual(testData);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should verify GraphQL mock is working', (done) => {
+    it('should verify GraphQL mock is working', () => new Promise<void>((resolve, reject) => {
       const testData = {hello: 'world'};
 
       fetchMock.postOnce('https://test.com/graphql', {
@@ -80,10 +80,10 @@ describe('rip-hunter', () => {
         .then((response) => response.json())
         .then((data) => {
           expect(data).toEqual({data: testData});
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
   });
 
   describe('#toGql', () => {
@@ -235,7 +235,7 @@ describe('rip-hunter', () => {
   });
 
   describe('#ajax', () => {
-    it('should make GET request with query parameters', (done) => {
+    it('should make GET request with query parameters', () => new Promise<void>((resolve, reject) => {
       fetchMock.getOnce(`${url}?param=value`, {
         body: {success: true},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -246,12 +246,12 @@ describe('rip-hunter', () => {
       ajax(url, 'GET', {param: 'value'})
         .then((response) => {
           expect(response.success).toEqual(true);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should make POST request with body', (done) => {
+    it('should make POST request with body', () => new Promise<void>((resolve, reject) => {
       const data = {name: 'test'};
       fetchMock.postOnce(url, {
         body: {success: true},
@@ -263,12 +263,12 @@ describe('rip-hunter', () => {
       ajax(url, 'POST', data)
         .then((response) => {
           expect(response.success).toEqual(true);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle authentication token', (done) => {
+    it('should handle authentication token', () => new Promise<void>((resolve, reject) => {
       const token = 'test_token';
       fetchMock.postOnce(url, {
         body: {success: true},
@@ -281,12 +281,12 @@ describe('rip-hunter', () => {
         .then(() => {
           const opts = fetchMock.lastOptions();
           expect(opts.headers.get('Authorization')).toEqual(`Bearer ${token}`);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle custom headers', (done) => {
+    it('should handle custom headers', () => new Promise<void>((resolve, reject) => {
       const headers = new Headers({'X-Custom-Header': 'value'});
       fetchMock.postOnce(url, {
         body: {success: true},
@@ -299,12 +299,12 @@ describe('rip-hunter', () => {
         .then(() => {
           const opts = fetchMock.lastOptions();
           expect(opts.headers.get('X-Custom-Header')).toEqual('value');
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle text response', (done) => {
+    it('should handle text response', () => new Promise<void>((resolve, reject) => {
       fetchMock.postOnce(url, {
         body: 'plain text response',
         headers: new Headers({'Content-Type': 'text/plain'}),
@@ -314,60 +314,60 @@ describe('rip-hunter', () => {
       ajax(url, 'POST', {data: 'test'})
         .then((response) => {
           expect(response).toEqual('plain text response');
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle network errors', (done) => {
+    it('should handle network errors', () => new Promise<void>((resolve, reject) => {
       const originalFetch = global.fetch;
       global.fetch = () => Promise.reject(new Error('Network error'));
 
       ajax(url, 'POST', {data: 'test'})
         .then(() => {
           expect(false).toEqual(true);
-          done();
+          resolve();
         })
         .catch((error: ApiError) => {
           expect(error.errors[0]).toEqual('network_error');
           global.fetch = originalFetch;
-          done();
+          resolve();
         });
-    });
+    }));
 
-    it('should handle invalid URL errors', (done) => {
+    it('should handle invalid URL errors', () => new Promise<void>((resolve, reject) => {
       const originalFetch = global.fetch;
       global.fetch = () => Promise.reject(new Error('only absolute urls are supported'));
 
       ajax('invalid-url', 'POST', {data: 'test'})
         .then(() => {
           expect(false).toEqual(true);
-          done();
+          resolve();
         })
         .catch((error: ApiError) => {
           expect(error.errors[0]).toEqual('invalid_url');
           global.fetch = originalFetch;
-          done();
+          resolve();
         });
-    });
+    }));
 
-    it('should handle timeout', (done) => {
+    it('should handle timeout', () => new Promise<void>((resolve, reject) => {
       const originalFetch = global.fetch;
       global.fetch = () => new Promise<Response>(() => {});
 
       ajax(url, 'POST', {data: 'test'}, {timeout: 1})
         .then(() => {
           expect(false).toEqual(true);
-          done();
+          resolve();
         })
         .catch((error) => {
           expect(error.message).toEqual('Request timeout');
           global.fetch = originalFetch;
-          done();
+          resolve();
         });
-    });
+    }));
 
-    it('should handle cache with different parameters', (done) => {
+    it('should handle cache with different parameters', () => new Promise<void>((resolve, reject) => {
       fetchMock.getOnce(`${url}?param1=value1&param2=value2`, {
         body: {success: true},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -378,12 +378,12 @@ describe('rip-hunter', () => {
       ajax(url, 'GET', {param1: 'value1', param2: 'value2'}, {cache: true})
         .then((response) => {
           expect(response).toEqual({success: true});
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle cache with different options', (done) => {
+    it('should handle cache with different options', () => new Promise<void>((resolve, reject) => {
       fetchMock.getOnce(`${url}?param=value`, {
         body: {success: true},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -394,12 +394,12 @@ describe('rip-hunter', () => {
       ajax(url, 'GET', {param: 'value'}, {cache: true, timeout: 5000})
         .then((response) => {
           expect(response).toEqual({success: true});
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle empty URL', (done) => {
+    it('should handle empty URL', () => new Promise<void>((resolve, reject) => {
       fetchMock.getOnce('http://localhost/', {
         body: {success: true},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -410,12 +410,12 @@ describe('rip-hunter', () => {
       ajax('http://localhost/', 'GET')
         .then((response) => {
           expect(response.success).toEqual(true);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle null/undefined parameters', (done) => {
+    it('should handle null/undefined parameters', () => new Promise<void>((resolve, reject) => {
       fetchMock.getOnce(url, {
         body: {success: true},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -426,12 +426,12 @@ describe('rip-hunter', () => {
       ajax(url, 'GET', null)
         .then((response) => {
           expect(response.success).toEqual(true);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle different HTTP methods', (done) => {
+    it('should handle different HTTP methods', () => new Promise<void>((resolve, reject) => {
       fetchMock.putOnce(url, {
         body: {success: true},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -442,12 +442,12 @@ describe('rip-hunter', () => {
       ajax(url, 'PUT', {data: 'test'})
         .then((response) => {
           expect(response.success).toEqual(true);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle no timeout', (done) => {
+    it('should handle no timeout', () => new Promise<void>((resolve, reject) => {
       fetchMock.postOnce(url, {
         body: {success: true},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -458,12 +458,12 @@ describe('rip-hunter', () => {
       ajax(url, 'POST', {data: 'test'}, {timeout: 0})
         .then((response) => {
           expect(response.success).toEqual(true);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle cache cleanup', (done) => {
+    it('should handle cache cleanup', () => new Promise<void>((resolve, reject) => {
       fetchMock.getOnce(`${url}?param=value`, {
         body: {cached: true},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -473,12 +473,12 @@ describe('rip-hunter', () => {
 
       ajax(url, 'GET', {param: 'value'}, {cache: true})
         .then(() => {
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle empty token', (done) => {
+    it('should handle empty token', () => new Promise<void>((resolve, reject) => {
       fetchMock.postOnce(url, {
         body: {success: true},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -489,12 +489,12 @@ describe('rip-hunter', () => {
       ajax(url, 'POST', {data: 'test'}, {token: ''})
         .then((response) => {
           expect(response.success).toEqual(true);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle whitespace-only token', (done) => {
+    it('should handle whitespace-only token', () => new Promise<void>((resolve, reject) => {
       fetchMock.postOnce(url, {
         body: {success: true},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -505,12 +505,12 @@ describe('rip-hunter', () => {
       ajax(url, 'POST', {data: 'test'}, {token: '   '})
         .then((response) => {
           expect(response.success).toEqual(true);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle undefined options', (done) => {
+    it('should handle undefined options', () => new Promise<void>((resolve, reject) => {
       fetchMock.postOnce(url, {
         body: {success: true},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -521,12 +521,12 @@ describe('rip-hunter', () => {
       ajax(url, 'POST', {data: 'test'}, undefined)
         .then((response) => {
           expect(response.success).toEqual(true);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle null options', (done) => {
+    it('should handle null options', () => new Promise<void>((resolve, reject) => {
       fetchMock.postOnce(url, {
         body: {success: true},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -537,14 +537,14 @@ describe('rip-hunter', () => {
       ajax(url, 'POST', {data: 'test'}, undefined)
         .then((response) => {
           expect(response.success).toEqual(true);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
   });
 
   describe('#get', () => {
-    it('should make GET request', (done) => {
+    it('should make GET request', () => new Promise<void>((resolve, reject) => {
       fetchMock.getOnce(`${url}?param=value`, {
         body: {success: true},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -555,14 +555,14 @@ describe('rip-hunter', () => {
       get(url, {param: 'value'})
         .then((response) => {
           expect(response.success).toEqual(true);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
   });
 
   describe('#post', () => {
-    it('should make POST request', (done) => {
+    it('should make POST request', () => new Promise<void>((resolve, reject) => {
       const data = {name: 'test'};
       fetchMock.postOnce(url, {
         body: {success: true},
@@ -574,14 +574,14 @@ describe('rip-hunter', () => {
       post(url, data)
         .then((response) => {
           expect(response.success).toEqual(true);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
   });
 
   describe('#put', () => {
-    it('should make PUT request', (done) => {
+    it('should make PUT request', () => new Promise<void>((resolve, reject) => {
       const data = {name: 'test'};
       fetchMock.putOnce(url, {
         body: {success: true},
@@ -593,14 +593,14 @@ describe('rip-hunter', () => {
       put(url, data)
         .then((response) => {
           expect(response.success).toEqual(true);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
   });
 
   describe('#del', () => {
-    it('should make DELETE request', (done) => {
+    it('should make DELETE request', () => new Promise<void>((resolve, reject) => {
       fetchMock.deleteOnce(url, {
         body: {success: true},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -611,10 +611,10 @@ describe('rip-hunter', () => {
       del(url)
         .then((response) => {
           expect(response.success).toEqual(true);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
   });
 
   describe('#graphqlQuery', () => {
@@ -632,7 +632,7 @@ describe('rip-hunter', () => {
     const data: object = {hello: 'world'};
     const errors: Error[] = [{message: 'test_error', name: 'Test Error'}];
 
-    it('should get a successful response from a query', (done) => {
+    it('should get a successful response from a query', () => new Promise<void>((resolve, reject) => {
       fetchMock.postOnce(url, {
         body: {data},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -643,12 +643,12 @@ describe('rip-hunter', () => {
       graphqlQuery(url, {query})
         .then((results) => {
           expect(results).toEqual(data);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should send a token', (done) => {
+    it('should send a token', () => new Promise<void>((resolve, reject) => {
       fetchMock.postOnce(url, {
         body: {data},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -659,12 +659,12 @@ describe('rip-hunter', () => {
       graphqlQuery(url, {query}, {token: 'test-token'})
         .then((results) => {
           expect(results).toEqual(data);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should get an error from a query', (done) => {
+    it('should get an error from a query', () => new Promise<void>((resolve, reject) => {
       fetchMock.postOnce(url, {
         body: {errors},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -675,63 +675,63 @@ describe('rip-hunter', () => {
       graphqlQuery(url, {query})
         .then(() => {
           expect(false).toEqual(true);
-          done();
+          resolve();
         })
         .catch((error: ApiError) => {
           expect(error.errors).toBeDefined();
-          done();
+          resolve();
         });
-    });
+    }));
 
-    it('should handle network errors', (done) => {
+    it('should handle network errors', () => new Promise<void>((resolve, reject) => {
       const originalFetch = global.fetch;
       global.fetch = () => Promise.reject(new Error('Network error'));
 
       graphqlQuery(url, {query})
         .then(() => {
           expect(false).toEqual(true);
-          done();
+          resolve();
         })
         .catch((error: ApiError) => {
           expect(error.errors[0]).toEqual('network_error');
           global.fetch = originalFetch;
-          done();
+          resolve();
         });
-    });
+    }));
 
-    it('should handle invalid URL', (done) => {
+    it('should handle invalid URL', () => new Promise<void>((resolve, reject) => {
       const originalFetch = global.fetch;
       global.fetch = () => Promise.reject(new Error('only absolute urls are supported'));
 
       graphqlQuery('invalid-url', {query})
         .then(() => {
           expect(false).toEqual(true);
-          done();
+          resolve();
         })
         .catch((error: ApiError) => {
           expect(error.errors[0]).toEqual('invalid_url');
           global.fetch = originalFetch;
-          done();
+          resolve();
         });
-    });
+    }));
 
-    it('should handle timeout', (done) => {
+    it('should handle timeout', () => new Promise<void>((resolve, reject) => {
       const originalFetch = global.fetch;
       global.fetch = () => new Promise<Response>(() => {});
 
       graphqlQuery(url, {query}, {timeout: 1})
         .then(() => {
           expect(false).toEqual(true);
-          done();
+          resolve();
         })
         .catch((error) => {
           expect(error.message).toEqual('Request timeout');
           global.fetch = originalFetch;
-          done();
+          resolve();
         });
-    });
+    }));
 
-    it('should handle no timeout', (done) => {
+    it('should handle no timeout', () => new Promise<void>((resolve, reject) => {
       fetchMock.postOnce(url, {
         body: {data},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -742,12 +742,12 @@ describe('rip-hunter', () => {
       graphqlQuery(url, {query}, {timeout: 0})
         .then((results) => {
           expect(results).toEqual(data);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should handle empty URL', (done) => {
+    it('should handle empty URL', () => new Promise<void>((resolve, reject) => {
       fetchMock.postOnce('http://localhost/', {
         body: {data},
         headers: new Headers({'Content-Type': 'application/json'}),
@@ -758,12 +758,12 @@ describe('rip-hunter', () => {
       graphqlQuery('http://localhost/', {query})
         .then((results) => {
           expect(results.hello).toEqual('world');
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
 
-    it('should debug GraphQL function directly', (done) => {
+    it('should debug GraphQL function directly', () => new Promise<void>((resolve, reject) => {
       const testData = {hello: 'world'};
 
       fetchMock.postOnce('https://test.com/graphql', {
@@ -778,13 +778,13 @@ describe('rip-hunter', () => {
           console.log('GraphQL results:', results);
           console.log('Expected data:', testData);
           expect(results).toEqual(testData);
-          done();
+          resolve();
         })
         .catch((error) => {
           console.log('GraphQL error:', error);
-          done(error);
+          reject(error);
         });
-    });
+    }));
   });
 
   describe('#query', () => {
@@ -798,7 +798,7 @@ describe('rip-hunter', () => {
       fetchMock.restore();
     });
 
-    it('should call graphqlQuery with query object', (done) => {
+    it('should call graphqlQuery with query object', () => new Promise<void>((resolve, reject) => {
       const queryString = 'query { user { id } }';
       const data = {user: {id: '123'}};
 
@@ -812,10 +812,10 @@ describe('rip-hunter', () => {
       query(url, queryString)
         .then((results) => {
           expect(results).toEqual(data);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
   });
 
   describe('#mutation', () => {
@@ -829,7 +829,7 @@ describe('rip-hunter', () => {
       fetchMock.restore();
     });
 
-    it('should call graphqlQuery with mutation object', (done) => {
+    it('should call graphqlQuery with mutation object', () => new Promise<void>((resolve, reject) => {
       const mutationString = 'mutation { createUser { id } }';
       const data = {createUser: {id: '123'}};
 
@@ -843,10 +843,10 @@ describe('rip-hunter', () => {
       mutation(url, mutationString)
         .then((results) => {
           expect(results).toEqual(data);
-          done();
+          resolve();
         })
-        .catch(done);
-    });
+        .catch(reject);
+    }));
   });
 
   describe('#subscribeSSE', () => {

@@ -1,13 +1,15 @@
-import {jest} from '@jest/globals';
-import WS from 'jest-websocket-mock';
+import {vi} from 'vitest';
+import WS from 'vitest-websocket-mock';
 
 import {ApiError, subscribe} from './index.js';
 
 describe('GraphQL Subscription Functionality', () => {
   let server: WS;
-  const testUrl = 'ws://localhost:1234';
+  let testPort = 20000;
+  let testUrl: string;
 
   beforeEach(() => {
+    testUrl = `ws://localhost:${testPort++}`;
     server = new WS(testUrl);
   });
 
@@ -20,9 +22,9 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should create subscription with proper WebSocket connection', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
-    const onError = jest.fn();
-    const onComplete = jest.fn();
+    const onNext = vi.fn();
+    const onError = vi.fn();
+    const onComplete = vi.fn();
 
     const unsubscribe = subscribe(
       testUrl,
@@ -52,8 +54,8 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle subscription data messages', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
-    const onError = jest.fn();
+    const onNext = vi.fn();
+    const onError = vi.fn();
 
     subscribe(testUrl, query, {onNext, onError});
 
@@ -96,8 +98,8 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle subscription error messages', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
-    const onError = jest.fn();
+    const onNext = vi.fn();
+    const onError = vi.fn();
 
     subscribe(testUrl, query, {onNext, onError});
 
@@ -125,8 +127,8 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle subscription complete messages', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
-    const onComplete = jest.fn();
+    const onNext = vi.fn();
+    const onComplete = vi.fn();
 
     subscribe(testUrl, query, {onNext, onComplete});
 
@@ -151,7 +153,7 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should send unsubscribe message when unsubscribe is called', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
+    const onNext = vi.fn();
 
     const unsubscribe = subscribe(testUrl, query, {onNext});
 
@@ -175,7 +177,7 @@ describe('GraphQL Subscription Functionality', () => {
   it('should include variables in subscription payload', async () => {
     const query = 'subscription { userUpdated(userId: $userId) { id name } }';
     const variables = {userId: '123'};
-    const onNext = jest.fn();
+    const onNext = vi.fn();
 
     subscribe(testUrl, query, {onNext}, {variables});
 
@@ -219,7 +221,7 @@ describe('GraphQL Subscription Functionality', () => {
   it('should handle WebSocket connection errors', async () => {
     const errorServer = new WS('ws://localhost:1236');
     const query = 'subscription { userUpdated { id name } }';
-    const onError = jest.fn();
+    const onError = vi.fn();
 
     subscribe('ws://localhost:1236', query, {onError});
 
@@ -242,7 +244,7 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle empty URL gracefully', () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onError = jest.fn();
+    const onError = vi.fn();
 
     const unsubscribe = subscribe('', query, {onError});
 
@@ -267,8 +269,8 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle connection_ack messages', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
-    const onError = jest.fn();
+    const onNext = vi.fn();
+    const onError = vi.fn();
 
     subscribe(testUrl, query, {onNext, onError});
 
@@ -288,7 +290,7 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle connection_error messages', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onError = jest.fn();
+    const onError = vi.fn();
 
     subscribe(testUrl, query, {onError});
 
@@ -310,8 +312,8 @@ describe('GraphQL Subscription Functionality', () => {
     const multiServer = new WS('ws://localhost:1247');
     const query1 = 'subscription { userUpdated { id } }';
     const query2 = 'subscription { postUpdated { id } }';
-    const onNext1 = jest.fn();
-    const onNext2 = jest.fn();
+    const onNext1 = vi.fn();
+    const onNext2 = vi.fn();
 
     const unsubscribe1 = subscribe('ws://localhost:1247', query1, {onNext: onNext1});
     await new Promise(resolve => setTimeout(resolve, 10));
@@ -343,7 +345,7 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle data messages without nested data structure', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
+    const onNext = vi.fn();
 
     subscribe(testUrl, query, {onNext});
 
@@ -379,7 +381,7 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle empty variables', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
+    const onNext = vi.fn();
 
     subscribe(testUrl, query, {onNext}, {variables: {}});
 
@@ -407,7 +409,7 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle invalid JSON message', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onError = jest.fn();
+    const onError = vi.fn();
 
     subscribe(testUrl, query, {onError});
 
@@ -425,8 +427,8 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle message for unknown subscription ID', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
-    const onError = jest.fn();
+    const onNext = vi.fn();
+    const onError = vi.fn();
 
     subscribe(testUrl, query, {onNext, onError});
 
@@ -451,7 +453,7 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle multiple unsubscribe calls', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
+    const onNext = vi.fn();
 
     const unsubscribe = subscribe(testUrl, query, {onNext});
 
@@ -474,8 +476,8 @@ describe('GraphQL Subscription Functionality', () => {
   it('should handle subscription after connection is established', async () => {
     const query1 = 'subscription { userUpdated { id } }';
     const query2 = 'subscription { postUpdated { id } }';
-    const onNext1 = jest.fn();
-    const onNext2 = jest.fn();
+    const onNext1 = vi.fn();
+    const onNext2 = vi.fn();
 
     subscribe(testUrl, query1, {onNext: onNext1});
 
@@ -494,8 +496,8 @@ describe('GraphQL Subscription Functionality', () => {
   it('should handle reconnection callback', async () => {
     const reconnectServer = new WS('ws://localhost:1238');
     const query = 'subscription { userUpdated { id name } }';
-    const onReconnect = jest.fn();
-    const onError = jest.fn();
+    const onReconnect = vi.fn();
+    const onError = vi.fn();
 
     subscribe('ws://localhost:1238', query, {onReconnect, onError}, {
       maxReconnectAttempts: 2,
@@ -520,7 +522,7 @@ describe('GraphQL Subscription Functionality', () => {
   it('should handle reconnection max attempts exceeded', async () => {
     const maxAttemptsServer = new WS('ws://localhost:1239');
     const query = 'subscription { userUpdated { id name } }';
-    const onError = jest.fn();
+    const onError = vi.fn();
 
     subscribe('ws://localhost:1239', query, {onError}, {
       maxReconnectAttempts: 1,
@@ -576,7 +578,7 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle error payload as array', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onError = jest.fn();
+    const onError = vi.fn();
 
     subscribe(testUrl, query, {onError});
 
@@ -604,7 +606,7 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle error payload as object', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onError = jest.fn();
+    const onError = vi.fn();
 
     subscribe(testUrl, query, {onError});
 
@@ -640,7 +642,7 @@ describe('GraphQL Subscription Functionality', () => {
     });
 
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
+    const onNext = vi.fn();
 
     subscribe('ws://localhost:1242', query, {onNext});
 
@@ -658,8 +660,8 @@ describe('GraphQL Subscription Functionality', () => {
   it('should handle connection error during initial connection', async () => {
     const errorServer = new WS('ws://localhost:1243');
     const query = 'subscription { userUpdated { id name } }';
-    const onError = jest.fn();
-    const onReconnect = jest.fn();
+    const onError = vi.fn();
+    const onReconnect = vi.fn();
 
     subscribe('ws://localhost:1243', query, {onError, onReconnect}, {
       maxReconnectAttempts: 1,
@@ -683,7 +685,7 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle subscription with null variables', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
+    const onNext = vi.fn();
 
     subscribe(testUrl, query, {onNext}, {variables: null as any});
 
@@ -697,7 +699,7 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle subscription with undefined variables', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
+    const onNext = vi.fn();
 
     subscribe(testUrl, query, {onNext}, {variables: undefined});
 
@@ -750,7 +752,7 @@ describe('GraphQL Subscription Functionality', () => {
 
   it('should handle multiple data messages for same subscription', async () => {
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
+    const onNext = vi.fn();
 
     subscribe(testUrl, query, {onNext});
 
@@ -805,7 +807,7 @@ describe('GraphQL Subscription Functionality', () => {
     });
 
     const query = 'subscription { userUpdated { id name } }';
-    const onNext = jest.fn();
+    const onNext = vi.fn();
 
     const unsubscribe = subscribe('ws://localhost:1246', query, {onNext});
 

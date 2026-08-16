@@ -111,7 +111,7 @@ class GraphQLSubscriptionClient {
   private url: string;
   private options: HunterSubscriptionOptionsType;
   private reconnectAttempts = 0;
-  private reconnectTimer: NodeJS.Timeout | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private messageQueue: string[] = [];
   private isConnecting = false;
   private isConnected = false;
@@ -355,7 +355,7 @@ const subscriptionClients = new Map<string, GraphQLSubscriptionClient>();
 export const ajax = (
   url: string,
   method: string,
-  params?,
+  params?: any,
   options: HunterOptionsType = {}
 ): Promise<any> => {
   const {headers, token, timeout = 30000, cache = false} = options;
@@ -444,25 +444,25 @@ export const ajax = (
 
 export const get = (
   url: string,
-  params?,
+  params?: any,
   options?: HunterOptionsType
 ): Promise<any> => ajax(url, 'GET', params, options);
 
 export const post = (
   url: string,
-  params?,
+  params?: any,
   options?: HunterOptionsType
 ): Promise<any> => ajax(url, 'POST', params, options);
 
 export const put = (
   url: string,
-  params?,
+  params?: any,
   options?: HunterOptionsType
 ): Promise<any> => ajax(url, 'PUT', params, options);
 
 export const del = (
   url: string,
-  params?,
+  params?: any,
   options?: HunterOptionsType
 ): Promise<any> => ajax(url, 'DELETE', params, options);
 
@@ -555,7 +555,7 @@ export const graphqlQuery = (
           );
         } else if(
           (json.errors || []).some(
-            (error) => error.message === 'Must provide query string.'
+            (error: Error) => error.message === 'Must provide query string.'
           )
         ) {
           return Promise.reject(
@@ -646,7 +646,7 @@ export const subscribeSSE = (
 
   let retryCount = 0;
   let eventSource: EventSource | null = null;
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   const connect = (): void => {
     try {
