@@ -1,9 +1,9 @@
-# Rip Hunter: HTTP Client for REST & GraphQL**
+# Rip Hunter: HTTP Client for REST & GraphQL
 
 > **Rip Hunter: Your Universal Gateway to Modern API Endpoints with Unmatched Speed and Reliability**
 
-[![npm version](https://img.shields.io/npm/v/rip-hunter.svg?style=flat-square)](https://www.npmjs.com/package/rip-hunter)
-[![npm downloads](https://img.shields.io/npm/dm/rip-hunter.svg?style=flat-square)](https://www.npmjs.com/package/rip-hunter)
+[![npm version](https://img.shields.io/npm/v/@nlabs/rip-hunter.svg?style=flat-square)](https://www.npmjs.com/package/@nlabs/rip-hunter)
+[![npm downloads](https://img.shields.io/npm/dm/@nlabs/rip-hunter.svg?style=flat-square)](https://www.npmjs.com/package/@nlabs/rip-hunter)
 [![Issues](http://img.shields.io/github/issues/nitrogenlabs/rip-hunter.svg?style=flat-square)](https://github.com/nitrogenlabs/rip-hunter/issues)
 [![TypeScript](https://badges.frapsoft.com/typescript/version/typescript-next.svg?v=101)](https://github.com/ellerbrock/typescript-badges/)
 [![MIT license](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](http://opensource.org/licenses/MIT)
