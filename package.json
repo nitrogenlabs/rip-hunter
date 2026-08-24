@@ -1,6 +1,6 @@
 {
   "name": "@nlabs/rip-hunter",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "description": "TypeScript HTTP client for REST and GraphQL with auth, caching, timeouts, deduplication, SSE, and WebSocket subscriptions.",
   "license": "MIT",
   "type": "module",
