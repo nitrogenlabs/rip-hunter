@@ -416,3 +416,17 @@ MIT © Nitrogen Labs, Inc.
 
 - [GitHub](https://github.com/nitrogenlabs/rip-hunter)
 - [NPM](https://www.npmjs.com/package/rip-hunter)
+
+### HTTP failures
+
+REST helpers and `graphqlQuery` reject non-2xx responses with `ApiError`.
+`error.status` contains the HTTP status, `error.responseBody` contains the
+parsed JSON or response text, and `error.errors` contains `http_error`.
+An HTTP error is not relabeled as a network error. Failed GET requests are
+removed from the deduplication cache so a retry can reach the server.
+
+Earlier releases resolved REST error responses as normal results. Callers
+that intentionally inspect those bodies can temporarily pass
+`{throwHttpErrors: false}`; otherwise handle the rejected `ApiError` and
+inspect its `responseBody`. HTTP success alone does not prove an application
+operation succeeded—continue validating the expected response fields.

@@ -4,6 +4,7 @@
  */
 
 import {ApiError} from './errors/ApiError.js';
+import {assertHttpSuccess, JSON_CONTENT_TYPE_REGEX} from './httpResponse.js';
 
 const isArray = (value: any): value is any[] => Array.isArray(value);
 const isString = (value: any): value is string => typeof value === 'string';
@@ -14,9 +15,6 @@ const isEmpty = (value: any): boolean =>
 const isNull = (value: any): boolean => value === null;
 const isUndefined = (value: any): boolean => value === undefined;
 
-// Cache for compiled regex patterns
-const JSON_CONTENT_TYPE_REGEX = /application\/json/i;
-
 // Request cache for deduplication
 const requestCache = new Map<string, Promise<any>>();
 
@@ -26,6 +24,8 @@ export interface HunterOptionsType {
   readonly variables?: any;
   readonly timeout?: number;
   readonly cache?: boolean;
+  /** Reject non-2xx HTTP responses. Set false only for legacy response handling. */
+  readonly throwHttpErrors?: boolean;
 }
 
 export interface HunterQueryType {
@@ -91,8 +91,8 @@ const createTimeout = (ms: number): Promise<never> =>
 
 // Generate cache key for request deduplication
 const generateCacheKey = (url: string, method: string, params?: any, options?: HunterOptionsType): string => {
-  const key = JSON.stringify({method, options, params, url});
-  return btoa(key).slice(0, 50); // Truncate to reasonable length
+  // Full request identity keeps credentials and response policies isolated.
+  return JSON.stringify({method, options: {...options, headers: options?.headers ? Array.from(options.headers.entries()) : []}, params, url});
 };
 
 // SSE EventSource polyfill for Node.js
@@ -400,7 +400,8 @@ export const ajax = (
     headers: formatHeaders,
     method: formatMethod
   })
-    .then((response: Response) => {
+    .then(async (response: Response) => {
+      await assertHttpSuccess(response, options);
       // Check if response is json using cached regex
       const isResponseJson = JSON_CONTENT_TYPE_REGEX.test(
         response.headers.get('Content-Type') || ''
@@ -414,6 +415,7 @@ export const ajax = (
     })
     .then((results) => results) // Simplified - no need for redundant check
     .catch((error) => {
+      if(error instanceof ApiError) throw error;
       if((error || {}).message === 'only absolute urls are supported') {
         return Promise.reject(
           new ApiError([{message: 'invalid_url'}], error)
@@ -434,6 +436,9 @@ export const ajax = (
   if(cache && formatMethod === 'GET') {
     const cacheKey = generateCacheKey(formatUrl, formatMethod, params, options);
     requestCache.set(cacheKey, finalPromise);
+    void finalPromise.catch(() => {
+      if(requestCache.get(cacheKey) === finalPromise) requestCache.delete(cacheKey);
+    });
 
     // Clean up cache after 5 minutes
     setTimeout(() => requestCache.delete(cacheKey), 300000);
@@ -525,7 +530,8 @@ export const graphqlQuery = (
     headers: formatHeaders,
     method: 'post'
   })
-    .then((response: Response) => {
+    .then(async (response: Response) => {
+      await assertHttpSuccess(response, options);
       const isJson: boolean = JSON_CONTENT_TYPE_REGEX.test(
         response.headers.get('Content-Type') || ''
       );
@@ -537,6 +543,7 @@ export const graphqlQuery = (
       return null;
     })
     .catch((error) => {
+      if(error instanceof ApiError) throw error;
       if((error || {}).message === 'only absolute urls are supported') {
         return Promise.reject(
           new ApiError([{message: 'invalid_url'}], error)
