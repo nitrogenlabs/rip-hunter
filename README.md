@@ -430,3 +430,68 @@ that intentionally inspect those bodies can temporarily pass
 `{throwHttpErrors: false}`; otherwise handle the rejected `ApiError` and
 inspect its `responseBody`. HTTP success alone does not prove an application
 operation succeeded—continue validating the expected response fields.
+
+## Strict GraphQL requests
+
+Use `@nlabs/rip-hunter/graphql` for JSON GraphQL operations with caller-owned
+credentials and an optional fetch implementation (including React Native):
+
+```ts
+import {graphqlRequest} from '@nlabs/rip-hunter/graphql';
+
+const data = await graphqlRequest<{viewer: {id: string}}>(endpoint, {
+  query: 'query Viewer { viewer { id } }',
+  variables: {}
+}, {signal, timeout: 15_000, token});
+```
+
+The lean entry point does not load SSE or WebSocket code. Options support
+`headers: HeadersInit`, `requestImplementation: typeof fetch`, `signal`, `timeout`
+and `token`. Header inputs are cloned. An explicitly supplied token overrides
+Authorization; otherwise caller headers remain intact. JSON parsing does not
+require a response Content-Type header.
+
+Nonempty provider errors reject partial data; missing data rejects, while explicit
+null/falsy data is returned unchanged. `GraphQLRequestError` exposes `kind`, provider
+`errors`, HTTP `status`, `responseBody` and the original `cause`. Failure kinds are
+`http`, `graphql`, `missing_data`, `invalid_response`, `network`, `abort` and `timeout`.
+Apps retain endpoint policy, displayed error copy, session ownership and domain validation.
+Operations accept optional `operationName`. Interrupted successful response bodies
+reject as `invalid_response` with the original cause and HTTP status.
+Set `readHttpErrorBody: false` to classify non-success HTTP status immediately,
+without awaiting or decoding an error body; the default preserves error-body diagnostics.
+
+Timeouts are disabled by default. A positive timeout or upstream abort cancels the
+request through its AbortSignal, including response body reading; custom fetch
+implementations must honor that signal to release their resources. Request timers
+and upstream listeners are removed after completion. There are no automatic retries,
+caching or store updates. Existing `graphqlQuery`, `query`, `mutation` and REST APIs
+keep their established behavior.
+
+## Certificate HTTP/2 transport (Node only)
+
+Import `createHttp2Client` from `@nlabs/rip-hunter/http2`. Pass an HTTPS `origin`
+and Node TLS `tls` options (including `secureContext`, or PEM `cert`, `key`, and
+optional `ca`). Certificate and hostname verification remain enabled.
+`request(path, {method, headers, body, timeout, maxResponseBytes})` returns
+`{status, headers, body}` without interpreting HTTP error bodies. Defaults are
+GET, a 30-second deadline, and a 64-KiB response limit. Call `close()` after the
+requests complete. Streams are cancelled on timeout or response overflow.
+Connections are reused; requests are not automatically replayed after failures.
+This entry point adds no Node imports to browser entry points.
+
+## Lean HTTP request lifecycle
+
+`@nlabs/rip-hunter/http` exports `httpRequest(url, options, consumeResponse)`, `HttpRequestError`, `readBinaryResponse` and `BinaryResponseError`. It works with platform fetch or an injected `requestImplementation`, clones caller headers, and forwards RequestInit credentials/cache/redirect/method settings unchanged. Raw `body` and `json` are mutually exclusive, including explicit undefined raw body keys; JSON adds Content-Type only when absent. Parsing, accepted statuses, redirects, provider error data and retries remain caller-owned. No sessions, cache ingestion or retry is introduced.
+
+Caller signal and finite nonnegative `timeout` cover fetch AND the response consumer. Timeout0/omitted has no deadline. Large finite deadlines use bounded platform timer intervals and monotonic elapsed time so timer overflow cannot expire them early. Cancellation aborts the injected request and rejects even when it ignores the signal; pre-aborted requests are not invoked, and late responses are not consumed. HttpRequestError kind is abort/timeout; other network/domain errors propagate unchanged. Timers/listeners clean up on every settled path.
+
+`readBinaryResponse(response,maxBytes)` reads Uint8Array bytes without text conversion, enforces a nonnegative safe-integer cap against actual streamed bytes regardless of Content-Length, cancels oversize bodies and releases stream locks. Failed stream cancellation does not replace a known cap error; interrupted reads reject without returning a prefix. Use inside the HTTP callback so the deadline spans the bytes. Socket-idle Node HTTPS semantics are a separate capability and must not be replaced silently by this absolute deadline.
+
+### Node HTTPS bytes and socket inactivity
+
+`httpsBytesRequest` from `@nlabs/rip-hunter/node-https` sends a Uint8Array once, preserves response bytes, and limits actual received bytes. Options include immutable headers, method, maxBytes, injectable Node request binding and an inspectResponse callback for application status policy. `idleTimeout` is forwarded to Node HTTPS socket inactivity; it is **not** an absolute request deadline. Errors expose timeout, limit or interrupted kinds; request/body errors and domain callback errors retain identity. No redirects or retries. This Node-only entry point is separate from browser/native HTTP and GraphQL imports.
+
+### Public absolute deadline scheduler
+
+`@nlabs/rip-hunter/deadline` exports `scheduleDeadline(timeoutMs, expire)`. Supply a finite positive duration; cancellation returns a function that clears the pending timer. Scheduling measures monotonic elapsed time and splits durations above the platform timer limit into bounded intervals. The callback runs once when the absolute budget elapses. This generic scheduler does not own request retries, mutation semantics or caller error classification. The additive export is unpublished until a verified release or exact local artifact is adopted.

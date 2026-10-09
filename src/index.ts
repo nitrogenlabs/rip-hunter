@@ -19,6 +19,8 @@ const isUndefined = (value: any): boolean => value === undefined;
 const requestCache = new Map<string, Promise<any>>();
 
 export interface HunterOptionsType {
+  /** Explicit Fetch credential mode; omitted preserves the platform default. */
+  readonly credentials?: RequestCredentials;
   readonly headers?: Headers;
   readonly token?: string;
   readonly variables?: any;
@@ -358,7 +360,7 @@ export const ajax = (
   params?: any,
   options: HunterOptionsType = {}
 ): Promise<any> => {
-  const {headers, token, timeout = 30000, cache = false} = options;
+  const {credentials, headers, token, timeout = 30000, cache = false} = options;
 
   let formatUrl: string = (url || '').trim();
   const formatToken: string = (token || '').trim();
@@ -397,6 +399,7 @@ export const ajax = (
   // Create the request promise
   const requestPromise = fetch(formatUrl, {
     body: formatParams,
+    ...(credentials ? {credentials} : {}),
     headers: formatHeaders,
     method: formatMethod
   })
@@ -516,7 +519,7 @@ export const graphqlQuery = (
   query: HunterQueryType | HunterQueryType[],
   options: HunterOptionsType = {}
 ): Promise<any> => {
-  const {headers, token, timeout = 30000} = options;
+  const {credentials, headers, token, timeout = 30000} = options;
   const formatUrl: string = url ? url.trim() : '';
   const formatToken: string = (token || '').trim();
   const formatHeaders: Headers = headers || new Headers({'Content-Type': 'application/json'});
@@ -527,6 +530,7 @@ export const graphqlQuery = (
 
   const requestPromise = fetch(formatUrl, {
     body: JSON.stringify(query),
+    ...(credentials ? {credentials} : {}),
     headers: formatHeaders,
     method: 'post'
   })
@@ -744,3 +748,6 @@ export const subscribeSSE = (
 };
 
 export {ApiError} from './errors/ApiError.js';
+
+export {GraphQLRequestError, graphqlRequest} from './graphql.js';
+export type {GraphQLProviderError, GraphQLRequestErrorKind, GraphQLRequestOperation, GraphQLRequestOptions} from './graphql.js';
