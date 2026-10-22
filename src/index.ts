@@ -92,13 +92,18 @@ const createTimeout = (ms: number): Promise<never> =>
   );
 
 // Generate cache key for request deduplication
-const generateCacheKey = (url: string, method: string, params?: any, options?: HunterOptionsType): string => {
-  // Full request identity keeps credentials and response policies isolated.
-  return JSON.stringify({method, options: {...options, headers: options?.headers ? Array.from(options.headers.entries()) : []}, params, url});
-};
+// Full request identity keeps credentials and response policies isolated.
+const generateCacheKey = (
+  url: string, method: string, params?: any, options?: HunterOptionsType
+): string => JSON.stringify({
+  method,
+  options: {...options, headers: options?.headers ? Array.from(options.headers.entries()) : []},
+  params,
+  url
+});
 
 // SSE EventSource polyfill for Node.js
-const createEventSource = (url: string, options?: HunterSSEOptionsType): EventSource => {
+const createEventSource = (url: string, _options?: HunterSSEOptionsType): EventSource => {
   if(typeof EventSource !== 'undefined') {
     return new EventSource(url);
   }
@@ -123,6 +128,71 @@ class GraphQLSubscriptionClient {
   constructor(url: string, options: HunterSubscriptionOptionsType = {}) {
     this.url = url;
     this.options = options;
+  }
+
+  subscribe(
+    query: string,
+    variables: Record<string, unknown> | undefined,
+    callbacks: HunterSubscriptionCallbackType
+  ): () => void {
+    const subscriptionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    this.subscriptions.set(subscriptionId, callbacks);
+
+    const startMessage = {
+      id: subscriptionId,
+      payload: {
+        query,
+        variables: variables || {}
+      },
+      type: 'start'
+    };
+
+    const ensureConnection = (): void => {
+      if(!this.isConnected && !this.isConnecting) {
+        this.connect().then(() => {
+          this.send(JSON.stringify(startMessage));
+        }).catch((error) => {
+          if(callbacks.onError) {
+            callbacks.onError(error);
+          }
+        });
+      } else if(this.isConnected) {
+        this.send(JSON.stringify(startMessage));
+      }
+    };
+
+    ensureConnection();
+
+    return () => {
+      const stopMessage = {
+        id: subscriptionId,
+        type: 'stop'
+      };
+      this.send(JSON.stringify(stopMessage));
+      this.subscriptions.delete(subscriptionId);
+      const handler = this.messageHandlers.get(subscriptionId);
+      if(handler && this.ws) {
+        this.ws.removeEventListener('message', handler);
+        this.messageHandlers.delete(subscriptionId);
+      }
+    };
+  }
+
+  close(): void {
+    if(this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if(this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+    this.messageQueue = [];
+    this.subscriptions.clear();
+    this.messageHandlers.clear();
+    this.isConnected = false;
+    this.isConnecting = false;
   }
 
   private convertToWebSocketUrl(url: string): string {
@@ -153,8 +223,8 @@ class GraphQLSubscriptionClient {
           this.reconnectAttempts = 0;
 
           const initMessage = {
-            type: 'connection_init',
-            payload: this.options.connectionParams || {}
+            payload: this.options.connectionParams || {},
+            type: 'connection_init'
           };
           this.send(JSON.stringify(initMessage));
 
@@ -218,7 +288,7 @@ class GraphQLSubscriptionClient {
                     callbacks.onError(error);
                   }
                   break;
-                case 'complete':
+                case 'complete': {
                   if(callbacks.onComplete) {
                     callbacks.onComplete();
                   }
@@ -229,6 +299,7 @@ class GraphQLSubscriptionClient {
                     this.messageHandlers.delete(subscriptionId);
                   }
                   break;
+                }
               }
             }
           } catch(error) {
@@ -282,71 +353,6 @@ class GraphQLSubscriptionClient {
         });
       }
     }
-  }
-
-  subscribe(
-    query: string,
-    variables: Record<string, unknown> | undefined,
-    callbacks: HunterSubscriptionCallbackType
-  ): () => void {
-    const subscriptionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    this.subscriptions.set(subscriptionId, callbacks);
-
-    const startMessage = {
-      id: subscriptionId,
-      type: 'start',
-      payload: {
-        query,
-        variables: variables || {}
-      }
-    };
-
-    const ensureConnection = (): void => {
-      if(!this.isConnected && !this.isConnecting) {
-        this.connect().then(() => {
-          this.send(JSON.stringify(startMessage));
-        }).catch((error) => {
-          if(callbacks.onError) {
-            callbacks.onError(error);
-          }
-        });
-      } else if(this.isConnected) {
-        this.send(JSON.stringify(startMessage));
-      }
-    };
-
-    ensureConnection();
-
-    return () => {
-      const stopMessage = {
-        id: subscriptionId,
-        type: 'stop'
-      };
-      this.send(JSON.stringify(stopMessage));
-      this.subscriptions.delete(subscriptionId);
-      const handler = this.messageHandlers.get(subscriptionId);
-      if(handler && this.ws) {
-        this.ws.removeEventListener('message', handler);
-        this.messageHandlers.delete(subscriptionId);
-      }
-    };
-  }
-
-  close(): void {
-    if(this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-    if(this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
-    this.messageQueue = [];
-    this.subscriptions.clear();
-    this.messageHandlers.clear();
-    this.isConnected = false;
-    this.isConnecting = false;
   }
 }
 
@@ -418,7 +424,9 @@ export const ajax = (
     })
     .then((results) => results) // Simplified - no need for redundant check
     .catch((error) => {
-      if(error instanceof ApiError) throw error;
+      if(error instanceof ApiError) {
+        throw error;
+      }
       if((error || {}).message === 'only absolute urls are supported') {
         return Promise.reject(
           new ApiError([{message: 'invalid_url'}], error)
@@ -440,7 +448,9 @@ export const ajax = (
     const cacheKey = generateCacheKey(formatUrl, formatMethod, params, options);
     requestCache.set(cacheKey, finalPromise);
     void finalPromise.catch(() => {
-      if(requestCache.get(cacheKey) === finalPromise) requestCache.delete(cacheKey);
+      if(requestCache.get(cacheKey) === finalPromise) {
+        requestCache.delete(cacheKey);
+      }
     });
 
     // Clean up cache after 5 minutes
@@ -547,7 +557,9 @@ export const graphqlQuery = (
       return null;
     })
     .catch((error) => {
-      if(error instanceof ApiError) throw error;
+      if(error instanceof ApiError) {
+        throw error;
+      }
       if((error || {}).message === 'only absolute urls are supported') {
         return Promise.reject(
           new ApiError([{message: 'invalid_url'}], error)
@@ -613,6 +625,7 @@ export const subscribe = (
   options: HunterSubscriptionOptionsType = {}
 ): (() => void) => {
   const {token, variables, connectionParams, headers} = options;
+  void headers;
   const formatUrl: string = (url || '').trim();
   const formatToken: string = (token || '').trim();
 
@@ -692,6 +705,8 @@ export const subscribeSSE = (
           const sseEvent: HunterSSEEventType = {
             data: event.data,
             id: event.lastEventId,
+            // Transport upgrade must preserve existing decimal/hex autodetection in legacy SSE parsing.
+            // eslint-disable-next-line radix -- Preserve legacy autodetection.
             retry: event.data.includes('retry:') ? parseInt(event.data.split('retry:')[1]) : undefined,
             type: event.type
           };

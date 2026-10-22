@@ -7,7 +7,7 @@ export interface GraphQLRequestOperation {
 }
 
 export interface GraphQLRequestOptions {
-  readonly headers?: HeadersInit;
+  readonly headers?: Exclude<RequestInit['headers'], undefined>;
   /** Read HTTP error bodies by default; false classifies status immediately. */
   readonly readHttpErrorBody?: boolean;
   readonly requestImplementation?: typeof fetch;

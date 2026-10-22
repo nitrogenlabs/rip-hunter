@@ -4,7 +4,7 @@
  */
 export class ApiError extends Error {
   readonly responseBody?: unknown;
-  readonly status?: number;
+  readonly status?: number | undefined;
   source: Error;
   errors: string[];
 
