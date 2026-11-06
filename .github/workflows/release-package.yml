@@ -7,6 +7,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the version in package.json if it is not on npm yet (recovers a release whose publish failed)
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -27,27 +32,37 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-      - if: ${{ steps.release.outputs.releases_created == 'true' }}
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
         uses: actions/checkout@v7
 
-      - if: ${{ steps.release.outputs.releases_created == 'true' }}
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
         uses: actions/setup-node@v7
         with:
           cache: npm
           node-version: 24
           registry-url: https://registry.npmjs.org
 
-      - if: ${{ steps.release.outputs.releases_created == 'true' }}
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
+        name: Stop when this version is already published
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "$NAME@$VERSION" version --registry=https://registry.npmjs.org > /dev/null 2>&1; then
+            echo "$NAME@$VERSION is already published." >&2
+            exit 1
+          fi
+
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
         name: Install
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_READ_TOKEN || secrets.NPM_TOKEN }}
         run: npm ci --ignore-scripts
 
-      - if: ${{ steps.release.outputs.releases_created == 'true' }}
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
         name: Build package
         run: npm run build
 
-      - if: ${{ steps.release.outputs.releases_created == 'true' }}
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
         name: Freeze verified package
         id: package
         run: |
@@ -58,22 +73,22 @@ jobs:
           sha256sum "$ARCHIVE" > "$RUNNER_TEMP/release/SHA256SUMS"
           printf 'path=%s\n' "$ARCHIVE" >> "$GITHUB_OUTPUT"
 
-      - if: ${{ steps.release.outputs.releases_created == 'true' }}
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
         name: Publish package
         env:
           ARCHIVE: ${{ steps.package.outputs.path }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           sha256sum --check "$RUNNER_TEMP/release/SHA256SUMS"
-          npx --no-install lex publish --packagePath "$ARCHIVE" --tag latest
+          # This repository's Lex has no archive publish, so the exact verified tarball goes to npm directly.
+          npm publish "$ARCHIVE" --ignore-scripts --tag latest
           sha256sum --check "$RUNNER_TEMP/release/SHA256SUMS"
 
-      - if: ${{ steps.release.outputs.releases_created == 'true' }}
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
         name: Verify registry publication
-        env:
-          EXPECTED: ${{ steps.release.outputs.version }}
         run: |
           NAME=$(node -p "require('./package.json').name")
+          EXPECTED=$(node -p "require('./package.json').version")
           # Publication is never retried; only the registry read is, because the registry can lag behind a publish.
           for attempt in $(seq 1 20); do
             LATEST=$(npm view "$NAME" dist-tags.latest --prefer-online --registry=https://registry.npmjs.org || true)
