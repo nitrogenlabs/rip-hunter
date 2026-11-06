@@ -7,6 +7,7 @@ import {
   del,
   get,
   graphqlQuery,
+  isNativeBody,
   mutation,
   post,
   put,
@@ -541,6 +542,141 @@ describe('rip-hunter', () => {
         })
         .catch(reject);
     }));
+
+    describe('native request bodies', () => {
+      const ok = () => fetchMock.postOnce(url, {
+        body: {success: true},
+        headers: new Headers({'Content-Type': 'application/json'}),
+        sendAsJson: true,
+        status: 200
+      });
+
+      it('sends FormData untouched and lets fetch write the multipart boundary', async () => {
+        ok();
+        const form = new FormData();
+        form.append('name', 'Ada');
+        form.append('photo', new Blob(['png-bytes'], {type: 'image/png'}), 'ada.png');
+        const headers = new Headers({'Content-Type': 'application/json', 'X-Custom': 'kept'});
+
+        const response = await ajax(url, 'POST', form, {headers});
+        const opts = fetchMock.lastOptions();
+
+        expect(response.success).toEqual(true);
+        expect(opts.body).toBe(form);
+        expect(opts.headers.has('Content-Type')).toBe(false);
+        expect(opts.headers.get('X-Custom')).toBe('kept');
+        // The caller's Headers are not rewritten.
+        expect(headers.get('Content-Type')).toBe('application/json');
+      });
+
+      it('sends a Blob with its own type', async () => {
+        ok();
+        const file = new Blob(['hello'], {type: 'image/png'});
+
+        await ajax(url, 'POST', file);
+        const opts = fetchMock.lastOptions();
+
+        expect(opts.body).toBe(file);
+        expect(opts.headers.get('Content-Type')).toBe('image/png');
+      });
+
+      it('keeps a Content-Type the caller set for a Blob', async () => {
+        ok();
+
+        await ajax(url, 'POST', new Blob(['x'], {type: 'image/png'}), {headers: new Headers({'Content-Type': 'image/webp'})});
+
+        expect(fetchMock.lastOptions().headers.get('Content-Type')).toBe('image/webp');
+      });
+
+      it('sends bytes as octet-stream unless told otherwise', async () => {
+        ok();
+        const bytes = new Uint8Array([1, 2, 3]);
+
+        await ajax(url, 'POST', bytes);
+
+        expect(fetchMock.lastOptions().body).toBe(bytes);
+        expect(fetchMock.lastOptions().headers.get('Content-Type')).toBe('application/octet-stream');
+
+        fetchMock.reset();
+        ok();
+        const buffer = new ArrayBuffer(4);
+
+        await ajax(url, 'POST', buffer, {headers: new Headers({'Content-Type': 'image/jpeg'})});
+
+        expect(fetchMock.lastOptions().body).toBe(buffer);
+        expect(fetchMock.lastOptions().headers.get('Content-Type')).toBe('image/jpeg');
+      });
+
+      it('sends URLSearchParams without a JSON Content-Type', async () => {
+        ok();
+        const fields = new URLSearchParams({a: '1'});
+
+        await ajax(url, 'POST', fields);
+
+        expect(fetchMock.lastOptions().body).toBe(fields);
+        expect(fetchMock.lastOptions().headers.has('Content-Type')).toBe(false);
+      });
+
+      it('refuses a body on GET and HEAD', async () => {
+        await expect(ajax(url, 'GET', new Blob(['x']))).rejects.toBeInstanceOf(ApiError);
+        await expect(ajax(url, 'head', new Uint8Array([1]))).rejects.toBeInstanceOf(ApiError);
+      });
+
+      it('still JSON-encodes plain objects and arrays', async () => {
+        ok();
+
+        await ajax(url, 'POST', {a: 1});
+
+        expect(fetchMock.lastOptions().body).toBe('{"a":1}');
+        expect(fetchMock.lastOptions().headers.get('Content-Type')).toBe('application/json');
+      });
+
+      it('recognizes native bodies and nothing else', () => {
+        expect(isNativeBody(new FormData())).toBe(true);
+        expect(isNativeBody(new Blob([]))).toBe(true);
+        expect(isNativeBody(new Uint8Array(1))).toBe(true);
+        expect(isNativeBody(new ArrayBuffer(1))).toBe(true);
+        expect(isNativeBody(new URLSearchParams())).toBe(true);
+        expect(isNativeBody({a: 1})).toBe(false);
+        expect(isNativeBody([1, 2])).toBe(false);
+        expect(isNativeBody('text')).toBe(false);
+        expect(isNativeBody(null)).toBe(false);
+      });
+    });
+
+    describe('response types', () => {
+      const bytes = new Uint8Array([9, 8, 7]);
+
+      it('reads a binary response as a Blob or ArrayBuffer whatever its content type', async () => {
+        fetchMock.getOnce(url, {body: 'ignored', status: 200});
+        const blobSpy = vi.spyOn(Response.prototype, 'blob').mockResolvedValue(new Blob([bytes]));
+
+        const blob = await ajax(url, 'GET', undefined, {responseType: 'blob'});
+
+        expect(blob).toBeInstanceOf(Blob);
+        blobSpy.mockRestore();
+
+        fetchMock.reset();
+        fetchMock.getOnce(url, {body: 'ignored', status: 200});
+        const bufferSpy = vi.spyOn(Response.prototype, 'arrayBuffer').mockResolvedValue(bytes.buffer);
+
+        const buffer = await ajax(url, 'GET', undefined, {responseType: 'arrayBuffer'});
+
+        expect(buffer).toBe(bytes.buffer);
+        bufferSpy.mockRestore();
+      });
+
+      it('can force text or JSON regardless of the content type', async () => {
+        fetchMock.getOnce(url, {body: '{"a":1}', headers: new Headers({'Content-Type': 'text/plain'}), status: 200});
+
+        expect(await ajax(url, 'GET', undefined, {responseType: 'json'})).toEqual({a: 1});
+
+        fetchMock.reset();
+        fetchMock.getOnce(url, {body: {a: 1}, headers: new Headers({'Content-Type': 'application/json'}), sendAsJson: true, status: 200});
+
+        expect(await ajax(url, 'GET', undefined, {responseType: 'text'})).toBe('{"a":1}');
+      });
+    });
   });
 
   describe('#get', () => {

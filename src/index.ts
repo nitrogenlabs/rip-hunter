@@ -18,6 +18,11 @@ const isUndefined = (value: any): boolean => value === undefined;
 // Request cache for deduplication
 const requestCache = new Map<string, Promise<any>>();
 
+/** Request bodies sent as they are, never JSON-encoded: multipart forms, files, bytes, form-encoded fields and streams. */
+export type HunterNativeBody = FormData | Blob | ArrayBuffer | ArrayBufferView | URLSearchParams | ReadableStream;
+/** How a successful response is read. Omitted: JSON when the server says so, otherwise text. */
+export type HunterResponseType = 'arrayBuffer' | 'blob' | 'json' | 'text';
+
 export interface HunterOptionsType {
   /** Explicit Fetch credential mode; omitted preserves the platform default. */
   readonly credentials?: RequestCredentials;
@@ -28,6 +33,8 @@ export interface HunterOptionsType {
   readonly cache?: boolean;
   /** Reject non-2xx HTTP responses. Set false only for legacy response handling. */
   readonly throwHttpErrors?: boolean;
+  /** Read the response as binary (`blob`, `arrayBuffer`), `text` or `json`, whatever its content type says. */
+  readonly responseType?: HunterResponseType;
 }
 
 export interface HunterQueryType {
@@ -90,6 +97,31 @@ const createTimeout = (ms: number): Promise<never> =>
   new Promise((_, reject) =>
     setTimeout(() => reject(new Error('Request timeout')), ms)
   );
+
+/** True for bodies fetch must receive untouched (FormData sets its own multipart boundary). */
+export const isNativeBody = (value: unknown): value is HunterNativeBody => (typeof FormData !== 'undefined' && value instanceof FormData)
+  || (typeof Blob !== 'undefined' && value instanceof Blob)
+  || value instanceof ArrayBuffer
+  || ArrayBuffer.isView(value)
+  || (typeof URLSearchParams !== 'undefined' && value instanceof URLSearchParams)
+  || (typeof ReadableStream !== 'undefined' && value instanceof ReadableStream);
+
+const readResponse = (response: Response, responseType?: HunterResponseType): Promise<any> => {
+  if(responseType === 'blob') {
+    return response.blob();
+  }
+  if(responseType === 'arrayBuffer') {
+    return response.arrayBuffer();
+  }
+  if(responseType === 'text') {
+    return response.text();
+  }
+  if(responseType === 'json' || JSON_CONTENT_TYPE_REGEX.test(response.headers.get('Content-Type') || '')) {
+    return response.json();
+  }
+
+  return response.text();
+};
 
 // Generate cache key for request deduplication
 // Full request identity keeps credentials and response policies isolated.
@@ -370,14 +402,36 @@ export const ajax = (
 
   let formatUrl: string = (url || '').trim();
   const formatToken: string = (token || '').trim();
-  const formatHeaders: Headers = headers || new Headers();
+  const native = isNativeBody(params);
+  // A native body adjusts its own headers, so it works on a copy and never alters the caller's Headers.
+  const formatHeaders: Headers = native ? new Headers(headers) : headers || new Headers();
 
   // Method
   const formatMethod: string = (method || 'GET').toUpperCase();
   let formatParams;
 
   // Parameters
-  if(params && formatMethod === 'GET') {
+  if(native) {
+    if(formatMethod === 'GET' || formatMethod === 'HEAD') {
+      return Promise.reject(new ApiError([{message: 'body_not_allowed'}], new TypeError(`${formatMethod} requests cannot have a body.`)));
+    }
+    if(!formatHeaders.has('Accept')) {
+      formatHeaders.set('Accept', 'application/json');
+    }
+    if(typeof FormData !== 'undefined' && params instanceof FormData) {
+      // fetch writes the multipart boundary itself; a preset Content-Type would break it.
+      formatHeaders.delete('Content-Type');
+    } else if(typeof Blob !== 'undefined' && params instanceof Blob) {
+      if(!formatHeaders.has('Content-Type') && params.type) {
+        formatHeaders.set('Content-Type', params.type);
+      }
+    } else if(params instanceof ArrayBuffer || ArrayBuffer.isView(params)) {
+      if(!formatHeaders.has('Content-Type')) {
+        formatHeaders.set('Content-Type', 'application/octet-stream');
+      }
+    }
+    formatParams = params;
+  } else if(params && formatMethod === 'GET') {
     formatUrl = `${formatUrl}?${queryString(params)}`;
     formatParams = null;
   } else if(params) {
@@ -406,21 +460,15 @@ export const ajax = (
   const requestPromise = fetch(formatUrl, {
     body: formatParams,
     ...(credentials ? {credentials} : {}),
+    // Streaming request bodies must opt in to half-duplex.
+    ...(typeof ReadableStream !== 'undefined' && params instanceof ReadableStream ? {duplex: 'half'} : {}),
     headers: formatHeaders,
     method: formatMethod
-  })
+  } as RequestInit)
     .then(async (response: Response) => {
       await assertHttpSuccess(response, options);
-      // Check if response is json using cached regex
-      const isResponseJson = JSON_CONTENT_TYPE_REGEX.test(
-        response.headers.get('Content-Type') || ''
-      );
 
-      if(isResponseJson) {
-        return response.json();
-      }
-
-      return response.text();
+      return readResponse(response, options.responseType);
     })
     .then((results) => results) // Simplified - no need for redundant check
     .catch((error) => {

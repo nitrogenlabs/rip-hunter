@@ -175,8 +175,8 @@ Low-level HTTP request for any method.
 
 - **url**: `string` – Absolute URL
 - **method**: `string` – HTTP method (GET, POST, etc.)
-- **params**: `object` – Data to send (query for GET, body for others)
-- **options**: `{ credentials?, headers?, token?, timeout?, cache?, throwHttpErrors? }`
+- **params**: `object | FormData | Blob | ArrayBuffer | TypedArray | URLSearchParams | ReadableStream` – Data to send. Query for GET. For other methods a plain object is sent as JSON; a native body (see [Files and binary data](#files-and-binary-data)) is sent as it is
+- **options**: `{ credentials?, headers?, token?, timeout?, cache?, throwHttpErrors?, responseType? }`
 - **Returns**: `Promise<any>`
 
 #### `get(url, params?, options?)`
@@ -350,6 +350,35 @@ the timeout race. That race rejects the returned promise without aborting the
 underlying fetch. Use the lean HTTP or strict GraphQL entry for cancellation
 covering request and body consumption. Legacy helpers take `Headers` objects
 and may update them when adding authentication or JSON headers.
+
+### Files and binary data
+
+Plain objects are JSON-encoded. Pass a native body and it is sent untouched, with no JSON `Content-Type`:
+
+```js
+// Multipart form: fetch writes the boundary, so do not set Content-Type
+const form = new FormData();
+form.append('name', 'Ada');
+form.append('photo', file); // a File or Blob
+await post('/api/characters', form);
+
+// A file or raw bytes: Blob uses its own type, bytes default to application/octet-stream
+await put('/api/upload', file);
+await post('/api/upload', bytes, { headers: new Headers({ 'Content-Type': 'image/png' }) });
+```
+
+Supported bodies: `FormData`, `Blob`/`File`, `ArrayBuffer`, typed arrays, `URLSearchParams` and `ReadableStream`
+(sent half-duplex). A native body is rejected on GET and HEAD, and a `Headers` object you pass in is never altered.
+`isNativeBody(value)` tells the two kinds apart.
+
+Read a binary response with `responseType`:
+
+```js
+const image = await get('/api/image', undefined, { responseType: 'blob' });
+const bytes = await get('/api/image', undefined, { responseType: 'arrayBuffer' });
+```
+
+`responseType` also accepts `'text'` and `'json'` to override what the response's content type suggests.
 
 ### Request Caching
 
