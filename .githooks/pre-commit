@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+if ! command -v npm >/dev/null 2>&1 && [ -s "$HOME/.nvm/nvm.sh" ]; then
+  . "$HOME/.nvm/nvm.sh"
+fi
+if ! command -v npm >/dev/null 2>&1; then
+  echo "Pre-commit tests require Node.js and npm. Initialize your Node version manager and retry." >&2
+  exit 127
+fi
+
+echo "Running local pre-commit tests..."
+npm run test:precommit

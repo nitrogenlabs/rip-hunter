@@ -93,7 +93,10 @@
     "test": "lex test",
     "update": "lex update --interactive",
     "watch": "lex compile --remove -watch",
-    "benchmark": "node --experimental-modules ./benchmark.js"
+    "benchmark": "node --experimental-modules ./benchmark.js",
+    "test:precommit": "npm run test --ignore-scripts",
+    "hooks:install": "node -e \"const fs = require('node:fs'); if (process.env.GITHUB_ACTIONS !== 'true' && fs.existsSync('.git') && fs.existsSync('.githooks/pre-commit')) require('node:child_process').execFileSync('git', ['config', '--local', 'core.hooksPath', '.githooks']);\"",
+    "prepare": "npm run hooks:install"
   },
   "optionalDependencies": {
     "eventsource": "^5.1.0"
