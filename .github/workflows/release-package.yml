@@ -1,0 +1,87 @@
+name: Release Rip-Hunter Package
+
+# Conventional commits drive the version. Every push to main updates a release pull request
+# (feat: minor, fix: patch, "!" or BREAKING CHANGE: major). Merging that pull request tags the
+# release, builds the package and publishes it to npm.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  pull-requests: write
+
+concurrency:
+  group: rip-hunter-package-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v5
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - if: ${{ steps.release.outputs.releases_created == 'true' }}
+        uses: actions/checkout@v7
+
+      - if: ${{ steps.release.outputs.releases_created == 'true' }}
+        uses: actions/setup-node@v7
+        with:
+          cache: npm
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - if: ${{ steps.release.outputs.releases_created == 'true' }}
+        name: Install
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_READ_TOKEN || secrets.NPM_TOKEN }}
+        run: npm ci --ignore-scripts
+
+      - if: ${{ steps.release.outputs.releases_created == 'true' }}
+        name: Build package
+        run: npm run build
+
+      - if: ${{ steps.release.outputs.releases_created == 'true' }}
+        name: Freeze verified package
+        id: package
+        run: |
+          mkdir -p "$RUNNER_TEMP/release"
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/release"
+          ARCHIVE=$(ls "$RUNNER_TEMP"/release/*.tgz)
+          test -f "$ARCHIVE"
+          sha256sum "$ARCHIVE" > "$RUNNER_TEMP/release/SHA256SUMS"
+          printf 'path=%s\n' "$ARCHIVE" >> "$GITHUB_OUTPUT"
+
+      - if: ${{ steps.release.outputs.releases_created == 'true' }}
+        name: Publish package
+        env:
+          ARCHIVE: ${{ steps.package.outputs.path }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          sha256sum --check "$RUNNER_TEMP/release/SHA256SUMS"
+          npx --no-install lex publish --packagePath "$ARCHIVE" --tag latest
+          sha256sum --check "$RUNNER_TEMP/release/SHA256SUMS"
+
+      - if: ${{ steps.release.outputs.releases_created == 'true' }}
+        name: Verify registry publication
+        env:
+          EXPECTED: ${{ steps.release.outputs.version }}
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          # Publication is never retried; only the registry read is, because the registry can lag behind a publish.
+          for attempt in $(seq 1 20); do
+            LATEST=$(npm view "$NAME" dist-tags.latest --prefer-online --registry=https://registry.npmjs.org || true)
+            if [ "$LATEST" = "$EXPECTED" ]; then
+              echo "Published $NAME@$LATEST"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "Registry latest is '$LATEST', expected $EXPECTED" >&2
+          exit 1
