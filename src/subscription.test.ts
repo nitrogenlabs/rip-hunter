@@ -1,4 +1,4 @@
-import {vi} from 'vitest';
+import {vi} from '@nlabs/lex/test-vitest';
 import WS from 'vitest-websocket-mock';
 
 import {ApiError, subscribe} from './index.js';

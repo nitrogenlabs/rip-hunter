@@ -1,5 +1,5 @@
 import {readFile} from 'node:fs/promises';
-import {describe, expect, it, test} from 'vitest';
+import {describe, expect, it, test} from '@nlabs/lex/test-vitest';
 
 import {scheduleDeadline} from './deadline.js';
 

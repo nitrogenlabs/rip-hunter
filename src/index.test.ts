@@ -1,4 +1,4 @@
-import {vi} from 'vitest';
+import {vi} from '@nlabs/lex/test-vitest';
 import {FetchMock} from '@nlabs/fetch-mock';
 
 import {ApiError} from './errors/ApiError.js';

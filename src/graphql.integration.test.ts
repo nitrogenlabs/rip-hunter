@@ -1,5 +1,5 @@
 import {createServer} from 'node:http';
-import {afterEach, expect, test} from 'vitest';
+import {afterEach, expect, test} from '@nlabs/lex/test-vitest';
 
 import {graphqlRequest} from './graphql.js';
 

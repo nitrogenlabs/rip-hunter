@@ -100,13 +100,14 @@
   },
   "devDependencies": {
     "@nlabs/fetch-mock": "1.0.2",
-    "@nlabs/lex": "1.59.5",
+    "@nlabs/lex": "2.1.2",
     "@types/node": "26.2.0",
     "typescript": "6.0.3",
     "vitest-websocket-mock": "0.7.0"
   },
   "overrides": {
-    "http-proxy-middleware": "^3.0.7"
+    "http-proxy-middleware": "^3.0.7",
+    "vitest": "4.1.11"
   },
   "files": [
     "lib",

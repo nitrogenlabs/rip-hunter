@@ -1,4 +1,4 @@
-import {vi} from 'vitest';
+import {vi} from '@nlabs/lex/test-vitest';
 
 import {subscribeSSE} from './index.js';
 

@@ -1,6 +1,6 @@
 import {readFileSync} from 'node:fs';
 import {createSecureServer} from 'node:http2';
-import {afterEach, describe, expect, it} from 'vitest';
+import {afterEach, describe, expect, it} from '@nlabs/lex/test-vitest';
 import {createHttp2Client} from './http2.js';
 
 const cert = readFileSync(new URL('./test-fixtures/cert.pem', import.meta.url));

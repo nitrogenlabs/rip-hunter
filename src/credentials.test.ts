@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from '@nlabs/lex/test-vitest';
 
 import {ajax, graphqlQuery} from './index.js';
 

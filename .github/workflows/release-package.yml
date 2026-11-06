@@ -80,8 +80,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           sha256sum --check "$RUNNER_TEMP/release/SHA256SUMS"
-          # This repository's Lex has no archive publish, so the exact verified tarball goes to npm directly.
-          npm publish "$ARCHIVE" --ignore-scripts --tag latest
+          npx --no-install lex publish --packagePath "$ARCHIVE" --tag latest
           sha256sum --check "$RUNNER_TEMP/release/SHA256SUMS"
 
       - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}

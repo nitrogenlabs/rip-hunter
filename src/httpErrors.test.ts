@@ -1,4 +1,4 @@
-import {afterEach, expect, it, vi} from 'vitest';
+import {afterEach, expect, it, vi} from '@nlabs/lex/test-vitest';
 import {ajax, graphqlQuery, post} from './index.js';
 import {ApiError} from './errors/ApiError.js';
 afterEach(() => vi.unstubAllGlobals());
