@@ -106,8 +106,7 @@
     "vitest-websocket-mock": "0.7.0"
   },
   "overrides": {
-    "http-proxy-middleware": "^3.0.7",
-    "vitest": "4.1.11"
+    "http-proxy-middleware": "^3.0.7"
   },
   "files": [
     "lib",
