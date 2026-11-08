@@ -16,7 +16,7 @@ const run = (command, args) => {
 };
 await writeFile(path.join(directory, 'package.json'), JSON.stringify({dependencies: {
   '@nlabs/lex': '2.1.2', '@nlabs/rip-hunter': archive, '@types/node': '26.2.0', '@types/react': '19.3.0',
-  react: '19.3.1', 'react-native': '0.88.1', typescript: '6.0.3'
+  react: '19.3.1', 'react-native': '0.86.0', typescript: '6.0.3'
 }, private: true, type: 'module'}, null, 2));
 run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund']);
 const fixtures = path.dirname(fileURLToPath(import.meta.url));
