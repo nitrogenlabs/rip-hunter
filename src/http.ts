@@ -178,3 +178,5 @@ export const httpRequest = async <T>(
 ): Promise<T> => startHttpRequest(url, options, consumeResponse).result;
 
 export {BinaryResponseError, readBinaryResponse} from './binaryResponse.js';
+
+export {assertHttpSuccess, type HttpStatusOptions} from './httpResponse.js';

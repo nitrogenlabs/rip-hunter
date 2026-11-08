@@ -34,7 +34,7 @@
 | Import | Purpose | Runtime |
 | --- | --- | --- |
 | `@nlabs/rip-hunter` | REST helpers, legacy GraphQL helpers, SSE and subscriptions; also exports strict `graphqlRequest` | Platform fetch; streaming features require platform support |
-| `@nlabs/rip-hunter/http` | Fetch lifecycle, caller-owned decoding and bounded binary reads | Node, browser, React Native with fetch APIs |
+| `@nlabs/rip-hunter/http` | Fetch lifecycle, HTTP status handling, caller-owned decoding and bounded binary reads | Node, browser, React Native with fetch APIs |
 | `@nlabs/rip-hunter/graphql` | Strict JSON GraphQL operations and typed errors without subscription code | Node, browser, React Native with fetch APIs |
 | `@nlabs/rip-hunter/http2` | Reusable certificate-authenticated HTTP/2 client | Node only |
 | `@nlabs/rip-hunter/node-https` | Bounded HTTPS byte transport with socket inactivity timeout | Node only |
@@ -42,6 +42,15 @@
 | `@nlabs/rip-hunter/errors` or `@nlabs/rip-hunter/errors/ApiError` | Legacy `ApiError` class | All supported runtimes |
 
 Use the dedicated entry points for lean transports. HTTP, HTTP/2, Node HTTPS and deadline helpers are imported from their subpaths.
+
+The HTTP entry exports `assertHttpSuccess(response, options)` and `HttpStatusOptions`.
+Call it inside the `httpRequest` or `startHttpRequest` response consumer to keep
+error-body reading within the operation's absolute deadline. Successful responses
+remain unread. HTTP failures throw the same public `ApiError` used by the legacy
+REST helpers, preserving status and parsed JSON (or original text) in
+`responseBody`. `{throwHttpErrors: false}` leaves an error response unread for
+caller-owned handling. This helper does not retry requests or select a redirect
+policy; pass the required `redirect` option to the request operation.
 
 ## Installation
 

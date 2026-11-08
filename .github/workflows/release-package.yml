@@ -1,17 +1,26 @@
 name: Release Rip-Hunter Package
 
-# Conventional commits drive the version. Every push to main updates a release pull request
-# (feat: minor, fix: patch, "!" or BREAKING CHANGE: major). Merging that pull request tags the
-# release, builds the package and publishes it to npm.
 on:
   push:
     branches: [main]
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish the version in package.json if it is not on npm yet (recovers a release whose publish failed)
+        description: 'Recover an unpublished release using its explicit package version'
         default: false
         type: boolean
+      publish_version:
+        description: 'Qualified package-only publication version; leave all inputs empty for Release Please'
+        required: false
+        type: string
+      dist_tag:
+        description: 'Explicit npm distribution tag for qualified publication'
+        required: false
+        type: string
+      source_sha:
+        description: 'Exact reviewed source SHA; must match the selected workflow ref'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -26,76 +35,209 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - id: release
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - id: intent
+        name: Resolve publication intent
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INTENDED_TAG: ${{ inputs.dist_tag }}
+          QUALIFIED_VERSION: ${{ inputs.publish_version }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {appendFileSync, readFileSync} from 'node:fs';
+          const version = process.env.QUALIFIED_VERSION || '';
+          const tag = process.env.INTENDED_TAG || '';
+          const sha = process.env.SOURCE_SHA || '';
+          if(!version && !tag && !sha) {
+            appendFileSync(process.env.GITHUB_OUTPUT, 'mode=release-please\ntag=latest\n');
+          } else {
+            assert.equal(process.env.EVENT_NAME, 'workflow_dispatch');
+            assert.ok(version && tag && sha, 'Qualified publication requires version, tag and source SHA.');
+            assert.ok(tag.trim() === tag && !/[\s\u0000-\u001f\u007f]/.test(tag), 'Invalid intended distribution tag.');
+            assert.match(sha, /^[a-f0-9]{40}$/);
+            assert.equal(sha, process.env.GITHUB_SHA, 'The workflow ref must be the reviewed source.');
+            assert.equal(JSON.parse(readFileSync('package.json', 'utf8')).version, version);
+            appendFileSync(process.env.GITHUB_OUTPUT, `mode=qualified\ntag=${tag}\n`);
+          }
+          NODE
+
+      - if: ${{ steps.intent.outputs.mode == 'release-please' }}
+        id: release
         uses: googleapis/release-please-action@v5
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
-        uses: actions/checkout@v7
-
-      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish || steps.intent.outputs.mode == 'qualified' }}
         uses: actions/setup-node@v7
         with:
           cache: npm
           node-version: 24
           registry-url: https://registry.npmjs.org
 
-      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
-        name: Stop when this version is already published
-        run: |
-          NAME=$(node -p "require('./package.json').name")
-          VERSION=$(node -p "require('./package.json').version")
-          if npm view "$NAME@$VERSION" version --registry=https://registry.npmjs.org > /dev/null 2>&1; then
-            echo "$NAME@$VERSION is already published." >&2
-            exit 1
-          fi
-
-      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish || steps.intent.outputs.mode == 'qualified' }}
         name: Install
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_READ_TOKEN || secrets.NPM_TOKEN }}
         run: npm ci --ignore-scripts
 
-      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
-        name: Build package
-        run: npm run build
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish || steps.intent.outputs.mode == 'qualified' }}
+        name: Verify package
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {spawnSync} from 'node:child_process';
+          import {readFileSync} from 'node:fs';
+          const manifest = JSON.parse(readFileSync('package.json', 'utf8'));
+          const result = spawnSync('npm', ['view', `${manifest.name}@${manifest.version}`, 'version', '--json',
+            '--registry=https://registry.npmjs.org', '--fetch-retries=0'], {encoding: 'utf8'});
+          assert.equal(result.status, 1, 'The intended version must not already exist.');
+          assert.equal(JSON.parse(result.stdout).error.code, 'E404', 'Only an authenticated registry E404 proves absence.');
+          NODE
+          npm exec -- lex test --unit
+          npm exec -- lex test --unit --config vitest.settlement.config.mts
+          npm run build
+          npm exec -- tsc --project tests/public-http-types/tsconfig.node.json
+          npm exec -- tsc --project tests/public-http-types/tsconfig.browser.json
+          npm exec -- lex lint --check --config eslint.http-status.config.mjs --maxWarnings 0
+          node --input-type=module <<'NODE'
+          import {resolveBinaryPath} from '@nlabs/lex';
+          import {spawnSync} from 'node:child_process';
+          const fixtureLint = spawnSync(process.execPath, [resolveBinaryPath('eslint', 'eslint'), '--config',
+            'eslint.http-status.config.mjs', '--max-warnings', '0', 'tests/public-http-types/contract.ts',
+            'tests/public-http-types/verify-consumer.mjs'], {stdio: 'inherit'});
+          if(fixtureLint.status !== 0) process.exit(fixtureLint.status ?? 1);
+          NODE
 
-      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish || steps.intent.outputs.mode == 'qualified' }}
         name: Freeze verified package
         id: package
         run: |
-          mkdir -p "$RUNNER_TEMP/release"
-          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/release"
-          ARCHIVE=$(ls "$RUNNER_TEMP"/release/*.tgz)
-          test -f "$ARCHIVE"
-          sha256sum "$ARCHIVE" > "$RUNNER_TEMP/release/SHA256SUMS"
-          printf 'path=%s\n' "$ARCHIVE" >> "$GITHUB_OUTPUT"
+          mkdir -p "$RUNNER_TEMP/rip-hunter-release"
+          npm view @nlabs/rip-hunter dist-tags --json > "$RUNNER_TEMP/rip-hunter-release/tags-before.json"
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          git rev-parse HEAD > "$RUNNER_TEMP/rip-hunter-release/source-sha.txt"
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/rip-hunter-release"
+          RIPHUNTER_ARCHIVE="$RUNNER_TEMP/rip-hunter-release/nlabs-rip-hunter-$(node -p "require('./package.json').version").tgz"
+          test -f "$RIPHUNTER_ARCHIVE"
+          sha256sum "$RIPHUNTER_ARCHIVE" > "$RUNNER_TEMP/rip-hunter-release/SHA256SUMS"
+          printf 'path=%s\n' "$RIPHUNTER_ARCHIVE" >> "$GITHUB_OUTPUT"
 
-      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish || steps.intent.outputs.mode == 'qualified' }}
+        name: Verify frozen public consumer
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_READ_TOKEN || secrets.NPM_TOKEN }}
+          RIPHUNTER_ARCHIVE: ${{ steps.package.outputs.path }}
+        run: |
+          mkdir "$RUNNER_TEMP/rip-hunter-release-consumer"
+          node tests/public-http-types/verify-consumer.mjs \
+            "$RIPHUNTER_ARCHIVE" "$RUNNER_TEMP/rip-hunter-release-consumer"
+          sha256sum --check "$RUNNER_TEMP/rip-hunter-release/SHA256SUMS"
+
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish || steps.intent.outputs.mode == 'qualified' }}
+        name: Retain verified publication artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: rip-hunter-publication
+          path: ${{ runner.temp }}/rip-hunter-release/
+          if-no-files-found: error
+          compression-level: 0
+
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish || steps.intent.outputs.mode == 'qualified' }}
         name: Publish package
         env:
-          ARCHIVE: ${{ steps.package.outputs.path }}
+          RIPHUNTER_DIST_TAG: ${{ steps.intent.outputs.tag }}
+          npm_config_ignore_scripts: 'true'
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RIPHUNTER_ARCHIVE: ${{ steps.package.outputs.path }}
         run: |
-          sha256sum --check "$RUNNER_TEMP/release/SHA256SUMS"
-          npx --no-install lex publish --packagePath "$ARCHIVE" --tag latest
-          sha256sum --check "$RUNNER_TEMP/release/SHA256SUMS"
+          sha256sum --check "$RUNNER_TEMP/rip-hunter-release/SHA256SUMS"
+          npx --no-install lex publish --packagePath "$RIPHUNTER_ARCHIVE" --tag "$RIPHUNTER_DIST_TAG"
+          sha256sum --check "$RUNNER_TEMP/rip-hunter-release/SHA256SUMS"
 
-      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish }}
+      - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish || steps.intent.outputs.mode == 'qualified' }}
         name: Verify registry publication
+        env:
+          RIPHUNTER_DIST_TAG: ${{ steps.intent.outputs.tag }}
+          RIPHUNTER_ARCHIVE: ${{ steps.package.outputs.path }}
         run: |
-          NAME=$(node -p "require('./package.json').name")
-          EXPECTED=$(node -p "require('./package.json').version")
-          # Publication is never retried; only the registry read is, because the registry can lag behind a publish.
-          for attempt in $(seq 1 20); do
-            LATEST=$(npm view "$NAME" dist-tags.latest --prefer-online --registry=https://registry.npmjs.org || true)
-            if [ "$LATEST" = "$EXPECTED" ]; then
-              echo "Published $NAME@$LATEST"
-              exit 0
+          # One shared 15-minute deadline; retry only unavailable registry reads, never publication.
+          RIPHUNTER_VERIFY_DEADLINE=$((SECONDS + 900))
+          read_available() {
+            local output="$1" remaining duration status
+            shift
+            while true; do
+              remaining=$((RIPHUNTER_VERIFY_DEADLINE - SECONDS))
+              if ((remaining <= 0)); then
+                echo 'Registry publication remained unavailable; no publication retry was attempted.' >&2
+                return 1
+              fi
+              duration=30
+              if ((remaining < duration)); then duration=$remaining; fi
+              if timeout --signal=KILL "${duration}s" npm "$@" --fetch-retries=0 --fetch-timeout="$((duration * 1000))" --prefer-online --registry=https://registry.npmjs.org > "$output"; then
+                return 0
+              else
+                status=$?
+              fi
+              if ((status != 1)) || ! node -e 'try { const value = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")); process.exit(value?.error?.code === "E404" ? 0 : 1); } catch { process.exit(1); }' "$output"; then
+                echo 'Registry read failed without a retryable E404; verification stopped.' >&2
+                return 1
+              fi
+              remaining=$((RIPHUNTER_VERIFY_DEADLINE - SECONDS))
+              duration=30
+              if ((remaining < duration)); then duration=$remaining; fi
+              if ((duration > 0)); then sleep "$duration"; fi
+            done
+          }
+          RIPHUNTER_VERSION="$(node -p "require('./package.json').version")"
+          read_available "$RUNNER_TEMP/rip-hunter-release/registry.json" view "@nlabs/rip-hunter@$RIPHUNTER_VERSION" name version dist.integrity --json
+          mkdir -p "$RUNNER_TEMP/rip-hunter-release/registry"
+          read_available "$RUNNER_TEMP/rip-hunter-release/download.json" pack "@nlabs/rip-hunter@$RIPHUNTER_VERSION" --ignore-scripts --pack-destination "$RUNNER_TEMP/rip-hunter-release/registry" --json
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {readFileSync} from 'node:fs';
+          import path from 'node:path';
+          const directory = path.join(process.env.RUNNER_TEMP, 'rip-hunter-release');
+          const expected = JSON.parse(readFileSync('package.json', 'utf8'));
+          const registry = JSON.parse(readFileSync(path.join(directory, 'registry.json'), 'utf8'));
+          const frozen = readFileSync(process.env.RIPHUNTER_ARCHIVE);
+          const downloaded = readFileSync(path.join(directory, 'registry', path.basename(process.env.RIPHUNTER_ARCHIVE)));
+          assert.equal(registry.name, expected.name);
+          assert.equal(registry.version, expected.version);
+          assert.deepEqual(downloaded, frozen);
+          assert.equal(registry['dist.integrity'], 'sha512-' + createHash('sha512').update(downloaded).digest('base64'));
+          console.log('Verified registry name, version, integrity and exact frozen archive bytes.');
+          NODE
+          # Metadata and payload conflicts fail above; only tag visibility may wait below.
+          while true; do
+            read_available "$RUNNER_TEMP/rip-hunter-release/tags.json" view @nlabs/rip-hunter dist-tags --json
+            if node --input-type=module <<'NODE'
+          import {isDeepStrictEqual} from 'node:util';
+          import {readFileSync} from 'node:fs';
+          import path from 'node:path';
+          const directory = path.join(process.env.RUNNER_TEMP, 'rip-hunter-release');
+          const tags = JSON.parse(readFileSync(path.join(directory, 'tags.json'), 'utf8'));
+          const before = JSON.parse(readFileSync(path.join(directory, 'tags-before.json'), 'utf8'));
+          const expected = {...before, [process.env.RIPHUNTER_DIST_TAG]: JSON.parse(readFileSync('package.json', 'utf8')).version};
+          if(isDeepStrictEqual(tags, expected)) process.exit(0);
+          if(isDeepStrictEqual(tags, before)) process.exit(1);
+          console.error('Registry tags conflict with the reviewed publication intent.');
+          process.exit(2);
+          NODE
+            then break; else status=$?; fi
+            if ((status != 1)); then exit "$status"; fi
+            remaining=$((RIPHUNTER_VERIFY_DEADLINE - SECONDS))
+            if ((remaining <= 0)); then
+              echo 'Intended tag did not become visible before the verification deadline.' >&2
+              exit 1
             fi
-            sleep 30
+            duration=30
+            if ((remaining < duration)); then duration=$remaining; fi
+            sleep "$duration"
           done
-          echo "Registry latest is '$LATEST', expected $EXPECTED" >&2
-          exit 1
