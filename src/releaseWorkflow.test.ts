@@ -238,3 +238,38 @@ it.each([
   expect(result.status).toBe(1);
   expect(result.stderr).toContain(message);
 });
+
+it('the workflow checkout contains the pinned product ancestor before qualified freeze', async () => {
+  const f = await qualified();
+  const isolated = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
+  const environment = {...isolated, GIT_CONFIG_GLOBAL: path.join(f.directory, 'git.config'), GIT_CONFIG_NOSYSTEM: '1'};
+  await writeFile(environment.GIT_CONFIG_GLOBAL, '');
+  const git = (cwd: string, args: string[]) => spawnSync('git', args, {cwd, encoding: 'utf8', env: environment});
+  const command = (args: string[]) => {
+    const result = git(f.directory, args);
+
+    expect(result.status).toBe(0);
+
+    return result.stdout.trim();
+  };
+  command(['-c', 'init.templateDir=', 'init', '-q', '--initial-branch=main']);
+  command(['config', 'user.name', 'Fixture']);
+  command(['config', 'user.email', 'fixture@example.invalid']);
+  command(['add', '.']);
+  command(['commit', '-qm', 'product']);
+  const product = command(['rev-parse', 'HEAD']);
+  await writeFile(path.join(f.directory, '.publication/workflow-proof'), 'qualified controls only');
+  command(['add', '.']);
+  command(['commit', '-qm', 'workflow']);
+  const checkout = path.join(f.directory, 'checkout');
+  const section = workflow.split('uses: actions/checkout@v7')[1].split('\n      - ')[0];
+  const depth = Number(section.match(/fetch-depth:\s*(\d+)/)?.[1] ?? 1);
+  const cloned = git(f.directory, ['clone', '-q', ...depth === 0 ? [] : ['--depth', String(depth)],
+    `file://${f.directory}`, checkout]);
+
+  expect(cloned.status).toBe(0);
+
+  const ancestry = git(checkout, ['merge-base', '--is-ancestor', product, 'HEAD']);
+
+  expect(ancestry.status).toBe(0);
+});
