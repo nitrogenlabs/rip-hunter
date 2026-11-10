@@ -17,6 +17,10 @@ on:
         description: 'Explicit npm distribution tag for qualified publication'
         required: false
         type: string
+      archive_sha256:
+        description: 'SHA256 of the exact reviewed .publication tarball (qualified publication only)'
+        required: false
+        type: string
       source_sha:
         description: 'Exact reviewed source SHA; must match the selected workflow ref'
         required: false
@@ -42,6 +46,7 @@ jobs:
       - id: intent
         name: Resolve publication intent
         env:
+          ARCHIVE_SHA256: ${{ inputs.archive_sha256 }}
           EVENT_NAME: ${{ github.event_name }}
           INTENDED_TAG: ${{ inputs.dist_tag }}
           QUALIFIED_VERSION: ${{ inputs.publish_version }}
@@ -53,16 +58,18 @@ jobs:
           const version = process.env.QUALIFIED_VERSION || '';
           const tag = process.env.INTENDED_TAG || '';
           const sha = process.env.SOURCE_SHA || '';
-          if(!version && !tag && !sha) {
+          const archive = process.env.ARCHIVE_SHA256 || '';
+          if(!version && !tag && !sha && !archive) {
             appendFileSync(process.env.GITHUB_OUTPUT, 'mode=release-please\ntag=latest\n');
           } else {
             assert.equal(process.env.EVENT_NAME, 'workflow_dispatch');
-            assert.ok(version && tag && sha, 'Qualified publication requires version, tag and source SHA.');
+            assert.ok(version && tag && sha && archive, 'Qualified publication requires version, tag, source SHA and archive SHA256.');
+            assert.match(archive, /^[a-f0-9]{64}$/, 'Invalid reviewed archive SHA256.');
             assert.ok(tag.trim() === tag && !/[\s\u0000-\u001f\u007f]/.test(tag), 'Invalid intended distribution tag.');
             assert.match(sha, /^[a-f0-9]{40}$/);
             assert.equal(sha, process.env.GITHUB_SHA, 'The workflow ref must be the reviewed source.');
             assert.equal(JSON.parse(readFileSync('package.json', 'utf8')).version, version);
-            appendFileSync(process.env.GITHUB_OUTPUT, `mode=qualified\ntag=${tag}\n`);
+            appendFileSync(process.env.GITHUB_OUTPUT, `mode=qualified\ntag=${tag}\narchive_sha256=${archive}\n`);
           }
           NODE
 
@@ -130,13 +137,56 @@ jobs:
         name: Freeze verified package
         id: package
         env:
+          RIPHUNTER_ARCHIVE_SHA256: ${{ steps.intent.outputs.archive_sha256 }}
+          RIPHUNTER_MODE: ${{ steps.intent.outputs.mode }}
+          RIPHUNTER_DIST_TAG: ${{ steps.intent.outputs.tag }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_READ_TOKEN || secrets.NPM_TOKEN }}
         run: |
           mkdir -p "$RUNNER_TEMP/rip-hunter-release"
           npm view @nlabs/rip-hunter dist-tags --json > "$RUNNER_TEMP/rip-hunter-release/tags-before.json"
           test -z "$(git status --porcelain --untracked-files=normal)"
           git rev-parse HEAD > "$RUNNER_TEMP/rip-hunter-release/source-sha.txt"
-          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/rip-hunter-release"
+          if [[ "$RIPHUNTER_MODE" == qualified ]]; then
+            node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {spawnSync} from 'node:child_process';
+          import {createHash} from 'node:crypto';
+          import {copyFileSync, readFileSync} from 'node:fs';
+          import path from 'node:path';
+          const expected = JSON.parse(readFileSync('package.json', 'utf8'));
+          const intent = JSON.parse(readFileSync('.publication/intent.json', 'utf8'));
+          assert.match(expected.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
+          assert.match(intent.productSourceSha, /^[a-f0-9]{40}$/, 'Frozen package product source is invalid.');
+          const ancestor = spawnSync('git', ['merge-base', '--is-ancestor', intent.productSourceSha, 'HEAD']);
+          assert.equal(ancestor.status, 0, 'Frozen package product source must be an ancestor.');
+          const changes = spawnSync('git', ['diff', '--name-only', intent.productSourceSha, 'HEAD'], {encoding: 'utf8'});
+          assert.equal(changes.status, 0, 'Frozen package product source cannot be compared.');
+          assert.ok(changes.stdout.trim().split('\n').filter(Boolean).every(file => file.startsWith('.publication/')
+            || file === '.github/workflows/release-package.yml' || file === 'src/releaseWorkflow.test.ts'),
+          'Frozen package product source changed after qualification.');
+          const source = path.join('.publication', `nlabs-rip-hunter-${expected.version}.tgz`);
+          const bytes = readFileSync(source);
+          const actual = createHash('sha256').update(bytes).digest('hex');
+          assert.equal(actual, process.env.RIPHUNTER_ARCHIVE_SHA256, 'Frozen archive SHA256 mismatch.');
+          assert.equal(intent.sha256, actual, 'Frozen archive intent SHA256 mismatch.');
+          const manifest = spawnSync('tar', ['-xOf', source, 'package/package.json'], {encoding: 'utf8'});
+          assert.equal(manifest.status, 0, 'Frozen package manifest cannot be read.');
+          const frozen = JSON.parse(manifest.stdout);
+          assert.equal(frozen.name, expected.name, 'Frozen package name mismatch.');
+          assert.equal(frozen.version, expected.version, 'Frozen package version mismatch.');
+          assert.notEqual(frozen.private, true, 'Frozen package cannot be private.');
+          assert.equal(intent.name, expected.name, 'Frozen package intent name mismatch.');
+          assert.equal(intent.version, expected.version, 'Frozen package intent version mismatch.');
+          assert.equal(intent.access, 'public', 'Frozen package intended access mismatch.');
+          assert.equal(intent.tag, process.env.RIPHUNTER_DIST_TAG, 'Frozen package intended tag mismatch.');
+          assert.equal(frozen.publishConfig?.access ?? 'public', intent.access, 'Frozen package access mismatch.');
+          const destination = path.join(process.env.RUNNER_TEMP, 'rip-hunter-release');
+          copyFileSync(source, path.join(destination, path.basename(source)));
+          copyFileSync('.publication/intent.json', path.join(destination, 'intent.json'));
+          NODE
+          else
+            npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/rip-hunter-release"
+          fi
           RIPHUNTER_ARCHIVE="$RUNNER_TEMP/rip-hunter-release/nlabs-rip-hunter-$(node -p "require('./package.json').version").tgz"
           test -f "$RIPHUNTER_ARCHIVE"
           sha256sum "$RIPHUNTER_ARCHIVE" > "$RUNNER_TEMP/rip-hunter-release/SHA256SUMS"

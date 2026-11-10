@@ -1,0 +1,8 @@
+{
+  "access": "public",
+  "name": "@nlabs/rip-hunter",
+  "productSourceSha": "cedc66c794c57d99e0ba9f3b78d2bf0ee2c2a327",
+  "sha256": "422e3714398d37877ad0e22cdfecd25a74f60e96632f0fb76f052fd01705d072",
+  "tag": "vault-cutover",
+  "version": "3.5.2"
+}

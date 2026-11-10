@@ -1,0 +1,13 @@
+# Reviewed Rip-Hunter3.5.2 publication artifact
+
+The immutable tarball is a reviewed publication artifact, not a consumer dependency. Its product source is `cedc66c794c57d99e0ba9f3b78d2bf0ee2c2a327`; the later workflow commit may change only release controls, their tests and this publication directory. Product/runtime files and package metadata must remain unchanged.
+
+SHA256: `422e3714398d37877ad0e22cdfecd25a74f60e96632f0fb76f052fd01705d072`.
+SHA1: `6a4f60205ce5fbc3852d8dce672c77c04c8f653a`.
+Intent: `@nlabs/rip-hunter@3.5.2`, public access, only `vault-cutover`; preserve every other distribution tag, including latest3.5.0 and reactorbox3.2.1.
+
+Qualification:335 owner units passed inside the normal pre-commit hook after fixing a hook-test inherited-Git-environment defect. The failed attempt and surgical recovery are retained separately under `/tmp/rip-hook-recovery-20261109`; no source bytes were lost, no reset/force/push occurred during recovery, and normal commit verified unchanged source/config. The new regression isolates inherited repository/index/object/config namespaces in temporary Git repositories. Scoped connect/status/fixture lint, declaration+SWC build and public Node/browser declarations passed. Connection39tests measured97.26% branches; settlement85tests measured97.53% branches (HTTP status reader94.11%). All10 real HTTP/GraphQL/TLS E2E cases passed using published Lex2.1.5's public Playwright entry.
+
+A clean npm consumer installed this exact archive with published Lex2.1.5 and strict TypeScript6.0.3, Node, browser and React Native0.86.0 declarations (`skipLibCheck:false`). Public callback/negative types and injected HTTP status handling, bounded402error bytes and ApiError identity passed. All25 installed payload files byte-matched the frozen archive, and npm ls exited0. Manifests, lockfile, runtime/types, version/tree and qualification evidence are retained at `/tmp/riphunter-3.5.2-npm-consumer`; only its generated node_modules was removed afterward. No Yarn checks were run for this release.
+
+Qualified publication requires the exact workflow source SHA, archive SHA256, version and explicit tag. It copies and rechecks these reviewed bytes, validates manifest/intent/source ancestry and unchanged product files, and invokes public Lex immutable-archive publication with lifecycle scripts disabled. Registry bytes/integrity and all tags must be reverified. Publication acceptance and registry visibility are separate states; do not repeat a publish accepted for registry processing. This ledger records local qualification, not publication or consumer adoption.

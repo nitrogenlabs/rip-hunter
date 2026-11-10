@@ -144,3 +144,97 @@ it('authenticated identity failure stops before treating a version E404 as absen
 
   expect(commands).toEqual([['whoami', '--registry=https://registry.npmjs.org', '--fetch-retries=0']]);
 });
+
+const qualified = async () => {
+  const f = await fixture();
+  const publication = path.join(f.directory, '.publication');
+  const contents = path.join(f.directory, 'package');
+  await mkdir(publication);
+  await mkdir(contents);
+  const archive = path.join(publication, 'nlabs-rip-hunter-3.5.2.tgz');
+  const manifest = {name: '@nlabs/rip-hunter', version: '3.5.2'};
+  const freeze = async (patch: Record<string, unknown> = {}) => {
+    await writeFile(path.join(contents, 'package.json'), JSON.stringify({...manifest, ...patch}));
+    const packed = spawnSync('tar', ['-czf', archive, '-C', f.directory, 'package'], {encoding: 'utf8'});
+
+    expect(packed.status).toBe(0);
+
+    const sha256 = createHash('sha256').update(await readFile(archive)).digest('hex');
+    await writeFile(path.join(publication, 'intent.json'), JSON.stringify({access: 'public',
+      name: manifest.name, productSourceSha: 'c'.repeat(40), sha256, tag: 'vault-cutover', version: manifest.version}));
+    return sha256;
+  };
+  const sha256 = await freeze();
+  const git = path.join(f.directory, 'bin/git');
+  await writeFile(git, ['#!/bin/sh',
+    'if [ "$1" = merge-base ] && [ "${CORRUPT_PRODUCT_SOURCE:-0}" = 1 ]; then exit 1; fi',
+    'if [ "$1" = diff ] && [ "${SOURCE_CODE_CHANGED:-0}" = 1 ]; then printf "%s\\n" src/nodeHttps.ts; fi',
+    'if [ "$1" = rev-parse ]; then printf "%s\\n" "$GITHUB_SHA"; fi', ''].join('\n'));
+  await chmod(git, 0o755);
+  const environment = {ARCHIVE_SHA256: sha256, EVENT_NAME: 'workflow_dispatch',
+    GITHUB_OUTPUT: path.join(f.directory, 'outputs'),
+    GITHUB_SHA: 'a'.repeat(40), INTENDED_TAG: 'vault-cutover', QUALIFIED_VERSION: '3.5.2',
+    RIPHUNTER_ARCHIVE_SHA256: sha256, RIPHUNTER_MODE: 'qualified', SOURCE_SHA: 'a'.repeat(40)};
+  return {...f, archive, environment, freeze};
+};
+
+it('qualified publication rejects an invalid archive hash before producing intent', async () => {
+  const f = await qualified();
+  const result = f.execute('Resolve publication intent', {...f.environment, ARCHIVE_SHA256: 'invalid'});
+
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain('Invalid reviewed archive SHA256');
+});
+
+it('qualified publication rejects a mismatched reviewed workflow source', async () => {
+  const f = await qualified();
+  const result = f.execute('Resolve publication intent', {...f.environment, SOURCE_SHA: 'b'.repeat(40)});
+
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain('workflow ref must be the reviewed source');
+});
+
+it('qualified freeze copies exactly reviewed archive bytes without repacking', async () => {
+  const f = await qualified();
+  const result = f.execute('Freeze verified package', f.environment);
+
+  expect({status: result.status, stderr: result.stderr}).toMatchObject({status: 0});
+  expect(await readFile(path.join(f.directory, 'rip-hunter-release/nlabs-rip-hunter-3.5.2.tgz')))
+    .toEqual(await readFile(f.archive));
+
+  const commands = (await readFile(path.join(f.directory, 'commands.jsonl'), 'utf8')).trim().split('\n')
+    .map((line) => JSON.parse(line) as string[]);
+
+  expect(commands.some(([command]) => command === 'pack')).toBe(false);
+});
+
+it('qualified freeze rejects bytes differing from the reviewed hash', async () => {
+  const f = await qualified();
+  const result = f.execute('Freeze verified package', {...f.environment, RIPHUNTER_ARCHIVE_SHA256: 'f'.repeat(64)});
+
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain('Frozen archive SHA256 mismatch');
+});
+
+it.each([{name: '@foreign/package'}, {version: '3.5.3'}, {publishConfig: {access: 'restricted'}}, {private: true}])(
+  'qualified freeze rejects a foreign frozen manifest %j', async (patch) => {
+    const f = await qualified();
+    const sha256 = await f.freeze(patch);
+    const result = f.execute('Freeze verified package', {...f.environment, RIPHUNTER_ARCHIVE_SHA256: sha256});
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('Frozen package');
+  });
+
+
+it.each([
+  {environment: {CORRUPT_PRODUCT_SOURCE: '1'}, message: 'product source must be an ancestor'},
+  {environment: {SOURCE_CODE_CHANGED: '1'}, message: 'product source changed after qualification'},
+  {environment: {RIPHUNTER_DIST_TAG: 'latest'}, message: 'intended tag mismatch'}
+])('qualified freeze rejects changed product source or tag $message', async ({environment, message}) => {
+  const f = await qualified();
+  const result = f.execute('Freeze verified package', {...f.environment, ...environment});
+
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain(message);
+});
