@@ -1,6 +1,6 @@
 {
   "name": "@nlabs/rip-hunter",
-  "version": "3.5.1",
+  "version": "3.5.2",
   "description": "TypeScript HTTP client for REST and GraphQL with auth, caching, timeouts, deduplication, SSE, and WebSocket subscriptions.",
   "license": "MIT",
   "type": "module",
@@ -91,6 +91,8 @@
     "publish:patch": "npm version patch && npm run publish:tags && npm publish",
     "publish:tags": "git push --tags && git push origin HEAD",
     "test": "lex test",
+    "test:e2e": "npm run test:integration --ignore-scripts",
+    "test:integration": "lex test --e2e --e2eConfig playwright.integration.config.ts",
     "update": "lex update --interactive",
     "watch": "lex compile --remove -watch",
     "benchmark": "node --experimental-modules ./benchmark.js",
@@ -103,7 +105,7 @@
   },
   "devDependencies": {
     "@nlabs/fetch-mock": "1.0.2",
-    "@nlabs/lex": "2.1.2",
+    "@nlabs/lex": "2.1.5",
     "@types/node": "26.2.0",
     "typescript": "6.0.3",
     "vitest-websocket-mock": "0.7.0"

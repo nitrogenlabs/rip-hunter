@@ -1,5 +1,5 @@
+import {expect, test} from '@nlabs/lex/test-playwright';
 import {createServer} from 'node:http';
-import {afterEach, expect, test} from '@nlabs/lex/test-vitest';
 
 import {graphqlRequest} from './graphql.js';
 
@@ -7,7 +7,7 @@ import type {Server} from 'node:http';
 
 let server: Server | undefined;
 
-afterEach(async () => {
+test.afterEach(async () => {
   server?.closeAllConnections();
   await new Promise<void>((resolve, reject) => {
     if(!server) {

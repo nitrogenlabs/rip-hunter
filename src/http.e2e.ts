@@ -1,10 +1,11 @@
+import {expect, test} from '@nlabs/lex/test-playwright';
 import {createServer} from 'node:http';
 
 import {httpRequest, readBinaryResponse} from './http.js';
 
 import type {AddressInfo} from 'node:net';
 
-describe('real local HTTP lifecycle', () => {
+test.describe('real local HTTP lifecycle', () => {
   const bytes = new Uint8Array([0, 255, 128, 13, 10, 192, 0]);
   const server = createServer((request, response) => {
     const path = request.url?.split('?')[0];
@@ -38,27 +39,31 @@ describe('real local HTTP lifecycle', () => {
   });
   let endpoint: string;
 
-  beforeAll(async () => {
+  test.beforeAll(async () => {
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     endpoint = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
 
-  afterAll(async () => {
+  test.afterAll(async () => {
     server.closeAllConnections();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
-  it('returns exact non-UTF8 bytes through platform fetch and shared reader', async () => {
+  test('returns exact non-UTF8 bytes through platform fetch and shared reader', async () => {
     expect(await httpRequest(`${endpoint}/bytes?retain=encoded%20value`, {}, (response) => readBinaryResponse(response, 7))).toEqual(bytes);
   });
 
-  it('keeps degraded JSON and metadata domain-owned despite Content-Type', async () => {
+  test('keeps degraded JSON and metadata domain-owned despite Content-Type', async () => {
     expect(await httpRequest(`${endpoint}/degraded`, {}, async (response) => ({body: await response.json(), ok: response.ok, status: response.status, url: response.url}))).toEqual({body: {degraded: true}, ok: false, status: 503, url: `${endpoint}/degraded`});
   });
 
-  it('lets adapter reject final redirect before consuming bytes', async () => {
+  test('lets adapter reject final redirect before consuming bytes', async () => {
     const error = new Error('redirect policy');
-    const consumeBytes = vi.fn((response: Response) => readBinaryResponse(response, 7));
+    let consumed = 0;
+    const consumeBytes = (response: Response) => {
+      consumed++;
+      return readBinaryResponse(response, 7);
+    };
 
     await expect(httpRequest(`${endpoint}/redirect`, {}, (response) => {
       if(response.url !== `${endpoint}/redirect`) {
@@ -66,14 +71,18 @@ describe('real local HTTP lifecycle', () => {
       }
       return consumeBytes(response);
     })).rejects.toBe(error);
-    expect(consumeBytes).not.toHaveBeenCalled();
+    expect(consumed).toBe(0);
   });
 
-  it.each(['/headers-hang', '/body-hang'])('aborts actual %s request under deadline', async (path) => {
-    await expect(httpRequest(`${endpoint}${path}`, {timeout: 50}, (response) => readBinaryResponse(response, 100))).rejects.toMatchObject({kind: 'timeout'});
-  });
+  const assertDeadline = async (path: string): Promise<void> => {
+    await expect(httpRequest(`${endpoint}${path}`, {timeout: 50}, (response) => readBinaryResponse(response, 100)))
+      .rejects.toMatchObject({kind: 'timeout'});
+  };
+  for(const path of ['/headers-hang', '/body-hang']) {
+    test(`aborts actual ${path} request under deadline`, () => assertDeadline(path));
+  }
 
-  it('rejects interrupted binary rather than returning a successful prefix', async () => {
+  test('rejects interrupted binary rather than returning a successful prefix', async () => {
     await expect(httpRequest(`${endpoint}/interrupted`, {timeout: 500}, (response) => readBinaryResponse(response, 100))).rejects.toBeInstanceOf(TypeError);
   });
 });

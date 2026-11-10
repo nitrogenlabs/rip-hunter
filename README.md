@@ -44,6 +44,10 @@
 Use the dedicated entry points for lean transports. HTTP, HTTP/2, Node HTTPS and deadline helpers are imported from their subpaths.
 
 The HTTP entry exports `assertHttpSuccess(response, options)` and `HttpStatusOptions`.
+An optional `maxResponseBytes` bounds actual streamed HTTP error bytes through the
+public binary reader. Oversized errors retain the original `ApiError.status` with
+`responseBody: undefined`; no truncated text or JSON is reported. Invalid limits
+fail before body reader I/O. Omission preserves existing response handling.
 Call it inside the `httpRequest` or `startHttpRequest` response consumer to keep
 error-body reading within the operation's absolute deadline. Successful responses
 remain unread. HTTP failures throw the same public `ApiError` used by the legacy
@@ -621,7 +625,7 @@ reject with `TypeError`. An absent response body returns an empty byte array.
 
 ### Node HTTPS bytes and socket inactivity
 
-`httpsBytesRequest` from `@nlabs/rip-hunter/node-https` sends a Uint8Array once, preserves response bytes, and limits actual received bytes. Options include immutable headers, method, maxBytes, injectable Node request binding and an inspectResponse callback for application status policy. `idleTimeout` is forwarded to Node HTTPS socket inactivity; it is **not** an absolute request deadline. Errors expose timeout, limit or interrupted kinds; request/body errors and domain callback errors retain identity. No redirects or retries. This Node-only entry point is separate from browser/native HTTP and GraphQL imports.
+`httpsBytesRequest` from `@nlabs/rip-hunter/node-https` sends a Uint8Array once, preserves response bytes, and limits actual received bytes. Options include immutable headers, method, maxBytes, injectable Node request binding and an inspectResponse callback for application status policy. `idleTimeout` is forwarded to Node HTTPS socket inactivity; it is **not** an absolute request deadline. An optional `connectTimeout` bounds DNS, TCP and TLS establishment independently; zero or omission disables it. A TCP connect event alone does not complete a TLS handshake. Public reused-socket semantics avoid restarting an established TLS phase. The shared deadline scheduler supports finite durations above the platform timer limit. Optional `signal` preserves the caller’s exact abort reason and remains active through rejected-body draining. Timers and socket/abort listeners are cleaned on completion, cancellation and synchronous send failures. Errors expose connect-timeout, timeout, limit or interrupted kinds; request/body errors and domain callback errors retain identity. No redirects or retries. This Node-only entry point is separate from browser/native HTTP and GraphQL imports.
 
 ```ts
 import {httpsBytesRequest} from '@nlabs/rip-hunter/node-https';

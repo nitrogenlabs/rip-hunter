@@ -1,6 +1,10 @@
 #!/bin/sh
 set -e
 
+if git diff --cached --quiet --no-renames -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' '*.mts' '*.cts'; then
+  exit 0
+fi
+
 if ! command -v npm >/dev/null 2>&1 && [ -s "$HOME/.nvm/nvm.sh" ]; then
   . "$HOME/.nvm/nvm.sh"
 fi

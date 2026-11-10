@@ -22,6 +22,8 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
+test-results/
+playwright-report/
 
 # Dependency directories
 node_modules

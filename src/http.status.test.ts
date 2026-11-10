@@ -89,3 +89,49 @@ it('error-body reading remains inside the absolute request deadline and aborts t
 
   expect(vi.getTimerCount()).toBe(0);
 });
+
+it.each([400, 429, 503])('bounds actual error bytes and preserves status %i without a truncated response body', async (status) => {
+  const cancel = vi.fn();
+  const response = new Response(new ReadableStream({cancel, start(controller) {
+    controller.enqueue(new TextEncoder().encode('{"message":"😀 overflow"}'));
+    controller.enqueue(new Uint8Array([32]));
+    controller.close();
+  }}), {headers: {'Content-Type': 'application/json'}, status});
+  const text = vi.spyOn(response, 'text');
+
+  await expect(assertHttpSuccess(response, {maxResponseBytes: 8})).rejects
+    .toMatchObject({responseBody: undefined, status});
+  expect(cancel).toHaveBeenCalledOnce();
+  expect(text).not.toHaveBeenCalled();
+  expect(response.body?.locked).toBe(false);
+});
+
+it('decodes complete bounded multibyte JSON across chunk boundaries', async () => {
+  const encoded = new TextEncoder().encode('{"message":"😀"}');
+  const response = new Response(new ReadableStream({start(controller) {
+    controller.enqueue(encoded.slice(0, 14));
+    controller.enqueue(encoded.slice(14));
+    controller.close();
+  }}), {headers: {'Content-Type': 'application/problem+json'}, status: 409});
+
+  await expect(assertHttpSuccess(response, {maxResponseBytes: encoded.length})).rejects.toMatchObject({
+    responseBody: {message: '😀'}, status: 409});
+  expect(response.body?.locked).toBe(false);
+});
+
+it.each([-1, NaN, Infinity, 1.5, Number.MAX_SAFE_INTEGER + 1])('invalid error byte bound %s rejects before reader I/O', async (maxResponseBytes) => {
+  const response = new Response('original', {status: 503});
+  const getReader = vi.spyOn(response.body!, 'getReader');
+  const text = vi.spyOn(response, 'text');
+
+  await expect(assertHttpSuccess(response, {maxResponseBytes})).rejects.toThrow(TypeError);
+  expect(getReader).not.toHaveBeenCalled();
+  expect(text).not.toHaveBeenCalled();
+});
+
+it('zero bounded allowance retains only HTTP status for a nonempty body', async () => {
+  const response = new Response('original', {status: 500});
+
+  await expect(assertHttpSuccess(response, {maxResponseBytes: 0})).rejects.toMatchObject({
+    responseBody: undefined, status: 500});
+});

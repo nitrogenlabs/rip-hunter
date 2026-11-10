@@ -15,7 +15,7 @@ const run = (command, args) => {
   assert.equal(result.status, 0, 'Public consumer qualification command failed.');
 };
 await writeFile(path.join(directory, 'package.json'), JSON.stringify({dependencies: {
-  '@nlabs/lex': '2.1.2', '@nlabs/rip-hunter': archive, '@types/node': '26.2.0', '@types/react': '19.3.0',
+  '@nlabs/lex': '2.1.5', '@nlabs/rip-hunter': archive, '@types/node': '26.2.0', '@types/react': '19.3.0',
   react: '19.3.1', 'react-native': '0.86.0', typescript: '6.0.3'
 }, private: true, type: 'module'}, null, 2));
 run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund']);
@@ -47,6 +47,10 @@ await assert.rejects(httpRequest('https://fixture.invalid', {requestImplementati
   async response => {await assertHttpSuccess(response, {});}), error => error instanceof ApiError
     && error.status === 402 && error.responseBody.error === 'synthetic');
 assert.equal(calls,1);
+await assert.rejects(httpRequest('https://fixture.invalid', {requestImplementation,redirect:'manual'},
+  async response => {await assertHttpSuccess(response, {maxResponseBytes: 1});}),
+  error => error instanceof ApiError && error.status === 402 && error.responseBody === undefined);
+assert.equal(calls,2);
 const ok = await httpRequest('https://fixture.invalid', {requestImplementation:async()=>new Response('{"ok":true}')},
   async response=>{await assertHttpSuccess(response,{});return response.json();});
 assert.deepEqual(ok,{ok:true});

@@ -27,10 +27,10 @@ const fixture = async () => {
     await writeFile(file, source);
     await chmod(file, 0o755);
   };
-  const manifest = {name: '@nlabs/rip-hunter', type: 'module', version: '3.5.1'};
+  const manifest = {name: '@nlabs/rip-hunter', type: 'module', version: '3.5.2'};
   await writeFile(path.join(directory, 'package.json'), JSON.stringify(manifest));
   const frozen = Buffer.from('synthetic immutable publication bytes');
-  const archive = path.join(directory, 'nlabs-rip-hunter-3.5.1.tgz');
+  const archive = path.join(directory, 'nlabs-rip-hunter-3.5.2.tgz');
   const release = path.join(directory, 'rip-hunter-release');
   await mkdir(release);
   await writeFile(archive, frozen);
@@ -42,11 +42,17 @@ import path from 'node:path';
 const args=process.argv.slice(2);
 appendFileSync('commands.jsonl',JSON.stringify(args)+'\\n');
 if(args.includes('lint')&&process.env.FAIL_SOURCE_LINT==='1')process.exit(1);
-if(args[0]==='view') {
+if(args[0]==='whoami') {
+  if(process.env.FAIL_IDENTITY==='1')process.exit(1);
+  console.log('synthetic-identity');
+} else if(args[0]==='view') {
+  if(args[1]==='@nlabs/rip-hunter@3.5.1'&&args[2]==='version') {
+    console.log(JSON.stringify('3.5.1'));process.exit(0);
+  }
   if(args[2]==='dist-tags') {
     const count=existsSync('tag-count')?Number(readFileSync('tag-count','utf8')):0;
     writeFileSync('tag-count',String(count+1));
-    console.log(JSON.stringify(count===0?{latest:'3.5.0'}:{latest:'3.5.0','vault-cutover':'3.5.1'}));
+    console.log(JSON.stringify(count===0?{latest:'3.5.0'}:{latest:'3.5.0','vault-cutover':'3.5.2'}));
   } else if(args[2]==='name') {
     console.log(JSON.stringify({...${JSON.stringify(metadata)},...(process.env.CORRUPT_METADATA==='1'?{'dist.integrity':'corrupt'}:{})}));
   } else {
@@ -124,4 +130,17 @@ it('rejects conflicting immutable metadata before waiting for tag propagation', 
   expect(result.status).toBe(1);
   expect(result.stderr).toContain('AssertionError');
   await expect(readFile(path.join(directory, 'tag-count'))).rejects.toMatchObject({code: 'ENOENT'});
+});
+
+
+it('authenticated identity failure stops before treating a version E404 as absence', async () => {
+  const {directory, execute} = await fixture();
+  const result = execute('Verify package', {FAIL_IDENTITY: '1'});
+
+  expect(result.status).toBe(1);
+
+  const commands = (await readFile(path.join(directory, 'commands.jsonl'), 'utf8')).trim().split('\n')
+    .map((line) => JSON.parse(line) as string[]);
+
+  expect(commands).toEqual([['whoami', '--registry=https://registry.npmjs.org', '--fetch-retries=0']]);
 });

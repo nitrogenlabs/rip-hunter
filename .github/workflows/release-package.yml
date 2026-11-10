@@ -88,23 +88,35 @@ jobs:
 
       - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish || steps.intent.outputs.mode == 'qualified' }}
         name: Verify package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_READ_TOKEN || secrets.NPM_TOKEN }}
         run: |
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import {spawnSync} from 'node:child_process';
           import {readFileSync} from 'node:fs';
           const manifest = JSON.parse(readFileSync('package.json', 'utf8'));
+          const identity = spawnSync('npm', ['whoami', '--registry=https://registry.npmjs.org', '--fetch-retries=0'], {encoding: 'utf8'});
+          assert.equal(identity.status, 0, 'Authenticated registry identity verification failed.');
+          assert.ok(identity.stdout.trim(), 'Authenticated registry identity is required.');
+          const baseline = spawnSync('npm', ['view', `${manifest.name}@3.5.1`, 'version', '--json',
+            '--registry=https://registry.npmjs.org', '--fetch-retries=0'], {encoding: 'utf8'});
+          assert.equal(baseline.status, 0, 'Published baseline must be visible using the authenticated read credential.');
+          assert.equal(JSON.parse(baseline.stdout), '3.5.1');
           const result = spawnSync('npm', ['view', `${manifest.name}@${manifest.version}`, 'version', '--json',
             '--registry=https://registry.npmjs.org', '--fetch-retries=0'], {encoding: 'utf8'});
           assert.equal(result.status, 1, 'The intended version must not already exist.');
           assert.equal(JSON.parse(result.stdout).error.code, 'E404', 'Only an authenticated registry E404 proves absence.');
           NODE
           npm exec -- lex test --unit
+          npm run test:e2e --ignore-scripts
           npm exec -- lex test --unit --config vitest.settlement.config.mts
+          npm exec -- lex test --unit --config vitest.connect.config.mts
           npm run build
           npm exec -- tsc --project tests/public-http-types/tsconfig.node.json
           npm exec -- tsc --project tests/public-http-types/tsconfig.browser.json
           npm exec -- lex lint --check --config eslint.http-status.config.mjs --maxWarnings 0
+          npm exec -- lex lint --check --config eslint.connect.config.mjs --maxWarnings 0
           node --input-type=module <<'NODE'
           import {resolveBinaryPath} from '@nlabs/lex';
           import {spawnSync} from 'node:child_process';
@@ -117,6 +129,8 @@ jobs:
       - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish || steps.intent.outputs.mode == 'qualified' }}
         name: Freeze verified package
         id: package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_READ_TOKEN || secrets.NPM_TOKEN }}
         run: |
           mkdir -p "$RUNNER_TEMP/rip-hunter-release"
           npm view @nlabs/rip-hunter dist-tags --json > "$RUNNER_TEMP/rip-hunter-release/tags-before.json"
@@ -163,6 +177,7 @@ jobs:
       - if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish || steps.intent.outputs.mode == 'qualified' }}
         name: Verify registry publication
         env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_READ_TOKEN || secrets.NPM_TOKEN }}
           RIPHUNTER_DIST_TAG: ${{ steps.intent.outputs.tag }}
           RIPHUNTER_ARCHIVE: ${{ steps.package.outputs.path }}
         run: |
